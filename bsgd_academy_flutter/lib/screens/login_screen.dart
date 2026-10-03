@@ -23,31 +23,52 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passCtrl = TextEditingController();
   bool _obscurePassword = true;
   String _errorMessage = '';
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _selectedRole = widget.initialRole;
     if (_selectedRole == UserRole.student) {
-      _idCtrl.text = '1001';
+      _idCtrl.text = 'student@bsgd.com';
       _passCtrl.text = '123456';
     } else {
-      _idCtrl.text = 'teacher';
+      _idCtrl.text = 'teacher@bsgd.com';
       _passCtrl.text = 'admin123';
     }
   }
 
-  void _handleLogin() {
+  @override
+  void dispose() {
+    _idCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
     final id = _idCtrl.text.trim();
     final pass = _passCtrl.text;
-    final auth = AuthService();
 
-    bool success = false;
-    if (_selectedRole == UserRole.student) {
-      success = auth.loginStudent(id, pass);
-    } else {
-      success = auth.loginTeacher(id, pass);
+    if (id.isEmpty || pass.isEmpty) {
+      setState(() => _errorMessage = 'Please enter email and password.');
+      return;
     }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    final auth = AuthService();
+    final success = await auth.signIn(
+      email: id.contains('@') ? id : '$id@bsgd.com',
+      password: pass,
+      expectedRole: _selectedRole,
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
 
     if (success) {
       Navigator.pushReplacement(
@@ -56,8 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else {
       setState(() {
-        _errorMessage =
-            'Invalid password or identifier. Please check demo credentials.';
+        _errorMessage = auth.error ?? 'Invalid email or password.';
       });
     }
   }
@@ -115,7 +135,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Role Switcher Tab
                     SegmentedButton<UserRole>(
                       segments: const [
                         ButtonSegment(
@@ -147,10 +166,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           _selectedRole = newSelection.first;
                           _errorMessage = '';
                           if (_selectedRole == UserRole.student) {
-                            _idCtrl.text = '1001';
+                            _idCtrl.text = 'student@bsgd.com';
                             _passCtrl.text = '123456';
                           } else {
-                            _idCtrl.text = 'teacher';
+                            _idCtrl.text = 'teacher@bsgd.com';
                             _passCtrl.text = 'admin123';
                           }
                         });
@@ -192,10 +211,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     TextField(
                       controller: _idCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      enabled: !_isLoading,
                       decoration: InputDecoration(
                         labelText: isStudent
-                            ? 'Roll Number or Email'
-                            : 'Faculty Username',
+                            ? 'Email or Roll Number'
+                            : 'Faculty Email',
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.person_outline),
                       ),
@@ -205,6 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextField(
                       controller: _passCtrl,
                       obscureText: _obscurePassword,
+                      enabled: !_isLoading,
                       decoration: InputDecoration(
                         labelText: 'Security Password',
                         border: const OutlineInputBorder(),
@@ -235,15 +257,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      onPressed: _handleLogin,
-                      child: Text(
-                        'Unlock & Enter ${isStudent ? "Portal" : "Dashboard"}',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
+                      onPressed: _isLoading ? null : _handleLogin,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'Unlock & Enter ${isStudent ? "Portal" : "Dashboard"}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 20),
 
-                    // Demo Credentials helper note
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -254,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'DEMO CREDENTIALS:',
+                            'CREATE USER IN FIREBASE CONSOLE FIRST',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
@@ -264,8 +296,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 4),
                           Text(
                             isStudent
-                                ? 'Student Roll: 1001  |  Password: 123456'
-                                : 'Teacher User: teacher  |  Password: admin123',
+                                ? 'Student Email: student@bsgd.com  |  Password: 123456'
+                                : 'Teacher Email: teacher@bsgd.com  |  Password: admin123',
                             style: const TextStyle(
                               fontSize: 11,
                               color: AppTheme.textMuted,

@@ -1,9 +1,7 @@
-
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
@@ -21,7 +19,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'demo_teacher_id';
 
     if (_openCourseId != null) {
       return _CoursePlaylistView(
@@ -34,99 +32,123 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-          child: Row(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'My Courses',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  const Text(
+                    'My Courses & Video Manager',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                  ),
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.royalBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                    ),
+                    onPressed: () => _showCreateCourseDialog(uid),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text(
+                      'Create Course',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
               ),
-              const Spacer(),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.royalBlue,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => _showCreateCourseDialog(uid),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Create Course'),
+              const SizedBox(height: 20),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('courses')
+                    .where('teacherId', isEqualTo: uid)
+                    .snapshots(),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final docs = snap.data?.docs ?? [];
+                  if (docs.isEmpty) {
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Center(
+                          child: Text(
+                            'No courses created yet.\nPress "Create Course" to add your first batch.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: docs.length,
+                    itemBuilder: (ctx, i) {
+                      final d = docs[i].data() as Map<String, dynamic>;
+                      final id = docs[i].id;
+                      final title = d['title'] ?? 'Untitled Course';
+                      final desc = d['description'] ?? '';
+                      final videoCount = d['videoCount'] ?? 0;
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(16),
+                          leading: CircleAvatar(
+                            backgroundColor: AppTheme.royalBlue.withOpacity(
+                              0.12,
+                            ),
+                            child: const Icon(
+                              Icons.play_circle_fill,
+                              color: AppTheme.royalBlue,
+                            ),
+                          ),
+                          title: Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              '$desc\n$videoCount video(s) uploaded',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12.5),
+                            ),
+                          ),
+                          isThreeLine: true,
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => setState(() {
+                            _openCourseId = id;
+                            _openCourseTitle = title;
+                          }),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
         ),
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('courses')
-                .where('teacherId', isEqualTo: uid)
-                .snapshots(),
-            builder: (context, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final docs = snap.data?.docs ?? [];
-              if (docs.isEmpty) {
-                return Center(
-                  child: Text(
-                    'No courses yet.\nPress "Create Course" to add one.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: docs.length,
-                itemBuilder: (ctx, i) {
-                  final d = docs[i].data() as Map<String, dynamic>;
-                  final id = docs[i].id;
-                  final title = d['title'] ?? 'Untitled';
-                  final desc = d['description'] ?? '';
-                  final videoCount = d['videoCount'] ?? 0;
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(14),
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            AppTheme.royalBlue.withOpacity(0.12),
-                        child: const Icon(
-                          Icons.play_circle_fill,
-                          color: AppTheme.royalBlue,
-                        ),
-                      ),
-                      title: Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '$desc\n$videoCount video(s)',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      isThreeLine: true,
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => setState(() {
-                        _openCourseId = id;
-                        _openCourseTitle = title;
-                      }),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -137,7 +159,10 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Create Course'),
+        title: const Text(
+          'Create New Course',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -148,7 +173,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextField(
               controller: descCtrl,
               maxLines: 3,
@@ -165,6 +190,10 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.royalBlue,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Create'),
           ),
@@ -188,16 +217,16 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Course created. Open it to add video URLs.'),
+          content: Text(
+            'Course created successfully. Open it to add YouTube videos.',
+          ),
         ),
       );
     }
   }
 }
 
-// ========== PLAYLIST (URL-based) ==========
-
-// ========== PLAYLIST + IN-APP YOUTUBE PLAYER ==========
+// ========== PLAYLIST + IN-APP YOUTUBE PLAYER VIEW ==========
 class _CoursePlaylistView extends StatefulWidget {
   final String courseId;
   final String courseTitle;
@@ -217,24 +246,20 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
   YoutubePlayerController? _ytController;
   String? _currentVideoId;
   String? _currentTitle;
+  String? _currentDesc;
 
-  /// Extract YouTube video id from common URL formats
   String? _extractYoutubeId(String url) {
     final uri = Uri.tryParse(url.trim());
     if (uri == null) return null;
 
-    // https://youtu.be/VIDEO_ID
     if (uri.host.contains('youtu.be')) {
       if (uri.pathSegments.isNotEmpty) return uri.pathSegments.first;
     }
 
-    // https://www.youtube.com/watch?v=VIDEO_ID
     if (uri.queryParameters['v'] != null) {
       return uri.queryParameters['v'];
     }
 
-    // https://www.youtube.com/embed/VIDEO_ID
-    // https://www.youtube.com/shorts/VIDEO_ID
     if (uri.pathSegments.isNotEmpty) {
       final i = uri.pathSegments.indexWhere(
         (s) => s == 'embed' || s == 'shorts' || s == 'v',
@@ -246,12 +271,14 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
     return null;
   }
 
-  void _playVideo(String title, String url) {
+  void _playVideo(String title, String url, String desc) {
     final id = _extractYoutubeId(url);
     if (id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Not a valid YouTube URL. Use youtube.com or youtu.be link.'),
+          content: Text(
+            'Not a valid YouTube URL. Use youtube.com or youtu.be link.',
+          ),
         ),
       );
       return;
@@ -270,37 +297,72 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
     setState(() {
       _currentVideoId = id;
       _currentTitle = title;
+      _currentDesc = desc;
     });
   }
 
   Future<void> _addVideoByUrl() async {
     final titleCtrl = TextEditingController();
     final urlCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final durationCtrl = TextEditingController(text: '45m');
+    final thumbCtrl = TextEditingController();
 
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add YouTube Video'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Video title',
-                border: OutlineInputBorder(),
+        title: const Text(
+          'Add YouTube Video',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Video title *',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlCtrl,
-              decoration: const InputDecoration(
-                labelText: 'YouTube URL',
-                hintText: 'https://youtube.com/watch?v=... or youtu.be/...',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'YouTube URL *',
+                  hintText: 'https://youtube.com/watch?v=...',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: descCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Video Description',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: durationCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Duration (e.g. 45m)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: thumbCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Custom Thumbnail URL (Optional)',
+                  hintText: 'Leave blank to auto-fetch from YouTube',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -308,8 +370,12 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.royalBlue,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Add'),
+            child: const Text('Add Video'),
           ),
         ],
       ),
@@ -322,13 +388,14 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
     if (title.isEmpty || url.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Title and URL required.')),
+          const SnackBar(content: Text('Title and YouTube URL are required.')),
         );
       }
       return;
     }
 
-    if (_extractYoutubeId(url) == null) {
+    final ytId = _extractYoutubeId(url);
+    if (ytId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please paste a valid YouTube link.')),
@@ -337,19 +404,28 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
       return;
     }
 
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    // Auto-derive thumbnail from YouTube if custom thumbnail is empty
+    final customThumb = thumbCtrl.text.trim();
+    final finalThumbnail = customThumb.isNotEmpty
+        ? customThumb
+        : 'https://img.youtube.com/vi/$ytId/hqdefault.jpg';
+
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'demo_teacher_id';
 
     await FirebaseFirestore.instance
         .collection('courses')
         .doc(widget.courseId)
         .collection('videos')
         .add({
-      'title': title,
-      'url': url,
-      'teacherId': uid,
-      'createdAt': FieldValue.serverTimestamp(),
-      'order': DateTime.now().millisecondsSinceEpoch,
-    });
+          'title': title,
+          'url': url,
+          'description': descCtrl.text.trim(),
+          'duration': durationCtrl.text.trim(),
+          'thumbnail': finalThumbnail,
+          'teacherId': uid,
+          'createdAt': FieldValue.serverTimestamp(),
+          'order': DateTime.now().millisecondsSinceEpoch,
+        });
 
     await FirebaseFirestore.instance
         .collection('courses')
@@ -358,7 +434,11 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Video added to playlist.')),
+        const SnackBar(
+          content: Text(
+            'Video successfully added with description & thumbnail!',
+          ),
+        ),
       );
     }
   }
@@ -371,171 +451,242 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Top bar
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
-          child: Row(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 950),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: widget.onBack,
-              ),
-              Expanded(
-                child: Text(
-                  widget.courseTitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+              // Top Bar with Back Button
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: widget.onBack,
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.courseTitle,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.royalBlue,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _addVideoByUrl,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add YouTube Video'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // In-App Player Card
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_currentTitle != null)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        color: AppTheme.primaryNavy,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _currentTitle!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                            if (_currentDesc != null &&
+                                _currentDesc!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _currentDesc!,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    if (_ytController != null && _currentVideoId != null)
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: YoutubePlayer(controller: _ytController!),
+                      )
+                    else
+                      Container(
+                        width: double.infinity,
+                        height: 220,
+                        color: Colors.grey.shade900,
+                        alignment: Alignment.center,
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.play_circle_outline,
+                              size: 48,
+                              color: Colors.white54,
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              'Select a video from the playlist below to play',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.royalBlue,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: _addVideoByUrl,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add YouTube Video'),
+              const SizedBox(height: 24),
+
+              const Text(
+                'Course Playlist',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+
+              // Playlist Stream with thumbnails & descriptions
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('courses')
+                    .doc(widget.courseId)
+                    .collection('videos')
+                    .orderBy('order')
+                    .snapshots(),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final docs = snap.data?.docs ?? [];
+                  if (docs.isEmpty) {
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(30),
+                        child: Center(
+                          child: Text(
+                            'No videos in this course playlist yet.\nClick "Add YouTube Video" above.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: docs.length,
+                    itemBuilder: (ctx, i) {
+                      final d = docs[i].data() as Map<String, dynamic>;
+                      final title = d['title'] ?? 'Video ${i + 1}';
+                      final url = d['url'] ?? '';
+                      final desc = d['description'] ?? '';
+                      final duration = d['duration'] ?? '45m';
+                      final thumb = d['thumbnail'] ?? '';
+                      final id = _extractYoutubeId(url);
+                      final isPlaying = id != null && id == _currentVideoId;
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        color: isPlaying
+                            ? AppTheme.royalBlue.withOpacity(0.12)
+                            : null,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(8),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: thumb.isNotEmpty
+                                ? Image.network(
+                                    thumb,
+                                    width: 75,
+                                    height: 45,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: 75,
+                                      height: 45,
+                                      color: AppTheme.royalBlue,
+                                      child: const Icon(
+                                        Icons.play_arrow,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  )
+                                : Container(
+                                    width: 75,
+                                    height: 45,
+                                    color: AppTheme.royalBlue,
+                                    child: const Icon(
+                                      Icons.play_arrow,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                          ),
+                          title: Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '$duration${desc.isNotEmpty ? ' • $desc' : ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            onPressed: () async {
+                              await docs[i].reference.delete();
+                              await FirebaseFirestore.instance
+                                  .collection('courses')
+                                  .doc(widget.courseId)
+                                  .update({
+                                    'videoCount': FieldValue.increment(-1),
+                                  });
+                            },
+                          ),
+                          onTap: () => _playVideo(title, url, desc),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
         ),
-
-        // In-app player
-        if (_ytController != null && _currentVideoId != null)
-          Container(
-            width: double.infinity,
-            color: Colors.black,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_currentTitle != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                    child: Text(
-                      _currentTitle!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: YoutubePlayer(
-                    controller: _ytController!,
-                    aspectRatio: 16 / 9,
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          Container(
-            width: double.infinity,
-            height: 180,
-            color: Colors.grey.shade200,
-            alignment: Alignment.center,
-            child: const Text(
-              'Select a video from the playlist to play here',
-              style: TextStyle(color: AppTheme.textMuted),
-            ),
-          ),
-
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Playlist',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-            ),
-          ),
-        ),
-
-        // Playlist list
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('courses')
-                .doc(widget.courseId)
-                .collection('videos')
-                .orderBy('order')
-                .snapshots(),
-            builder: (context, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final docs = snap.data?.docs ?? [];
-              if (docs.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No videos yet.\nAdd a YouTube link.',
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: docs.length,
-                itemBuilder: (ctx, i) {
-                  final d = docs[i].data() as Map<String, dynamic>;
-                  final title = d['title'] ?? 'Video ${i + 1}';
-                  final url = d['url'] ?? '';
-                  final id = _extractYoutubeId(url);
-                  final isPlaying = id != null && id == _currentVideoId;
-
-                  return Card(
-                    color: isPlaying
-                        ? AppTheme.royalBlue.withOpacity(0.12)
-                        : null,
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppTheme.royalBlue,
-                        child: Text(
-                          '${i + 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.red,
-                          size: 20,
-                        ),
-                        onPressed: () async {
-                          await docs[i].reference.delete();
-                          await FirebaseFirestore.instance
-                              .collection('courses')
-                              .doc(widget.courseId)
-                              .update({
-                            'videoCount': FieldValue.increment(-1),
-                          });
-                        },
-                      ),
-                      onTap: () => _playVideo(title, url),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

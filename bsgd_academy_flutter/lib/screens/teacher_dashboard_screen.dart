@@ -1,14 +1,30 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import 'teacher_dashboard_summary.dart';
 import 'teacher_notes_screen.dart';
 import 'teacher_suggestion_screen.dart';
 import 'teacher_message_screen.dart';
+import 'teacher_students_screen.dart';
+import 'teacher_attendance_screen.dart';
+import 'teacher_courses_screen.dart';
 import 'home_screen.dart';
+import 'courses_screen.dart';
+import 'live_class_screen.dart';
+import 'contact_screen.dart';
+import 'admission_screen.dart';
 
-enum TeacherMenu { dashboard, notes, suggestion, message, liveClass }
+enum TeacherMenu {
+  dashboard,
+  notes,
+  suggestion,
+  message,
+  students,
+  attendance,
+  courses,
+  liveClass,
+}
 
 class TeacherDashboardScreen extends StatefulWidget {
   const TeacherDashboardScreen({super.key});
@@ -19,7 +35,8 @@ class TeacherDashboardScreen extends StatefulWidget {
 
 class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   TeacherMenu _selected = TeacherMenu.dashboard;
-  bool _rightBarOpen = true;
+  bool _leftOpen = true;
+  bool _rightOpen = true;
 
   Future<void> _logout() async {
     await AuthService().signOut();
@@ -30,16 +47,27 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     );
   }
 
+  void _viewSite() {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+
   Widget _buildContent() {
     switch (_selected) {
       case TeacherMenu.dashboard:
-        return const _DashboardSummary();
+        return const TeacherDashboardSummary();
       case TeacherMenu.notes:
         return const TeacherNotesScreen();
       case TeacherMenu.suggestion:
         return const TeacherSuggestionScreen();
       case TeacherMenu.message:
         return const TeacherMessageScreen();
+      case TeacherMenu.students:
+        return const TeacherStudentsScreen();
+      case TeacherMenu.attendance:
+        return const TeacherAttendancePage();
+      case TeacherMenu.courses:
+        return const TeacherCoursesScreen();
       case TeacherMenu.liveClass:
         return const Center(
           child: Column(
@@ -67,87 +95,212 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     return Scaffold(
       body: Row(
         children: [
-          // ========== LEFT SIDEBAR ==========
-          Container(
-            width: 220,
-            color: AppTheme.primaryNavy,
-            child: SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  const Icon(
-                    Icons.school,
-                    color: AppTheme.academicGold,
-                    size: 36,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'BSGD Academy',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
+          // ========== LEFT: PUBLIC DRAWER STYLE ==========
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            width: _leftOpen ? 260 : 0,
+            child: _leftOpen
+                ? Container(
+                    color: Colors.white,
+                    child: SafeArea(
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 18,
+                            ),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF0F172A),
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: AppTheme.academicGold,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.royalBlue,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.school,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'BSGD Academy',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Coaching Management Suite',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.chevron_left,
+                                    color: Colors.white54,
+                                    size: 20,
+                                  ),
+                                  onPressed: () =>
+                                      setState(() => _leftOpen = false),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              children: [
+                                _sectionLabelLight('PUBLIC NAVIGATION'),
+                                _drawerItem(
+                                  Icons.home_outlined,
+                                  'Home',
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const HomeScreen(),
+                                    ),
+                                  ),
+                                ),
+                                _drawerItem(
+                                  Icons.menu_book_outlined,
+                                  'Courses & Batches',
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const CoursesScreen(),
+                                    ),
+                                  ),
+                                ),
+                                _drawerItem(
+                                  Icons.videocam_outlined,
+                                  'Live Classroom',
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const LiveClassScreen(),
+                                    ),
+                                  ),
+                                ),
+                                _drawerItem(
+                                  Icons.mail_outline,
+                                  'Contact & Support',
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ContactScreen(),
+                                    ),
+                                  ),
+                                ),
+                                _drawerItem(
+                                  Icons.how_to_reg_outlined,
+                                  'Online Admission',
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const AdmissionScreen(),
+                                    ),
+                                  ),
+                                  highlight: true,
+                                ),
+                                const Divider(height: 24),
+                                _sectionLabelLight('STUDENT PORTALS'),
+                                _drawerItem(
+                                  Icons.lock_outline,
+                                  'Student LMS Portal',
+                                  () {},
+                                  locked: true,
+                                ),
+                                _drawerItem(
+                                  Icons.quiz_outlined,
+                                  'Model Test Exam Center',
+                                  () {},
+                                ),
+                                _drawerItem(
+                                  Icons.emoji_events_outlined,
+                                  'Results & Merit Board',
+                                  () {},
+                                ),
+                                _drawerItem(
+                                  Icons.picture_as_pdf_outlined,
+                                  'PDF Lecture Notes',
+                                  () {},
+                                ),
+                                const Divider(height: 24),
+                                _sectionLabelLight('TEACHER & ADMIN'),
+                                _drawerItem(
+                                  Icons.security,
+                                  'Teacher Command Hub',
+                                  () => setState(
+                                    () => _selected = TeacherMenu.dashboard,
+                                  ),
+                                ),
+                                _drawerItem(
+                                  Icons.fact_check_outlined,
+                                  'Daily Attendance Register',
+                                  () => setState(
+                                    () => _selected = TeacherMenu.attendance,
+                                  ),
+                                ),
+                                _drawerItem(
+                                  Icons.groups_outlined,
+                                  'Student Roster',
+                                  () => setState(
+                                    () => _selected = TeacherMenu.students,
+                                  ),
+                                ),
+                                _drawerItem(
+                                  Icons.grading_outlined,
+                                  'Exam & Grade Evaluator',
+                                  () {},
+                                ),
+                                const Divider(height: 24),
+                                _drawerItem(
+                                  Icons.language,
+                                  'View Site',
+                                  _viewSite,
+                                  highlight: true,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const Text(
-                    'Teacher Panel',
-                    style: TextStyle(color: Colors.white60, fontSize: 11),
-                  ),
-                  const SizedBox(height: 28),
-                  _leftItem(
-                    icon: Icons.dashboard_outlined,
-                    label: 'Dashboard',
-                    menu: TeacherMenu.dashboard,
-                  ),
-                  _leftItem(
-                    icon: Icons.note_alt_outlined,
-                    label: 'Notes',
-                    menu: TeacherMenu.notes,
-                  ),
-                  _leftItem(
-                    icon: Icons.lightbulb_outline,
-                    label: 'Suggestion',
-                    menu: TeacherMenu.suggestion,
-                  ),
-                  _leftItem(
-                    icon: Icons.chat_outlined,
-                    label: 'Message',
-                    menu: TeacherMenu.message,
-                  ),
-                  _leftItem(
-                    icon: Icons.live_tv_outlined,
-                    label: 'Live Class',
-                    menu: TeacherMenu.liveClass,
-                  ),
-                  const Spacer(),
-                  const Divider(color: Colors.white24, height: 1),
-                  ListTile(
-                    dense: true,
-                    leading: const Icon(
-                      Icons.logout,
-                      color: Colors.white70,
-                      size: 20,
-                    ),
-                    title: const Text(
-                      'Logout',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                    onTap: _logout,
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
+                  )
+                : const SizedBox.shrink(),
           ),
 
           // ========== MAIN CONTENT ==========
           Expanded(
             child: Column(
               children: [
-                // Top bar
                 Container(
                   height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
                     border: Border(
@@ -156,6 +309,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   ),
                   child: Row(
                     children: [
+                      if (!_leftOpen)
+                        IconButton(
+                          tooltip: 'Show general menu',
+                          icon: const Icon(Icons.menu),
+                          onPressed: () => setState(() => _leftOpen = true),
+                        ),
                       Text(
                         _menuTitle(_selected),
                         style: const TextStyle(
@@ -171,34 +330,26 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                           fontSize: 13,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       CircleAvatar(
-                        radius: 15,
+                        radius: 14,
                         backgroundColor: AppTheme.royalBlue,
                         child: Text(
                           name.isNotEmpty ? name[0].toUpperCase() : 'T',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Toggle right bar
-                      IconButton(
-                        tooltip: _rightBarOpen
-                            ? 'Hide info panel'
-                            : 'Show info panel',
-                        icon: Icon(
-                          _rightBarOpen
-                              ? Icons.view_sidebar
-                              : Icons.view_sidebar_outlined,
-                          color: AppTheme.royalBlue,
+                      const SizedBox(width: 4),
+                      if (!_rightOpen)
+                        IconButton(
+                          tooltip: 'Show teacher menu',
+                          icon: const Icon(Icons.view_sidebar_outlined),
+                          onPressed: () => setState(() => _rightOpen = true),
                         ),
-                        onPressed: () =>
-                            setState(() => _rightBarOpen = !_rightBarOpen),
-                      ),
                     ],
                   ),
                 ),
@@ -207,95 +358,116 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             ),
           ),
 
-          // ========== RIGHT SIDEBAR (collapsible) ==========
+          // ========== RIGHT: TEACHER TOOLS ==========
           AnimatedContainer(
             duration: const Duration(milliseconds: 220),
-            width: _rightBarOpen ? 260 : 0,
-            child: _rightBarOpen
+            width: _rightOpen ? 220 : 0,
+            child: _rightOpen
                 ? Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      border: Border(
-                        left: BorderSide(color: Colors.grey.shade200),
-                      ),
-                    ),
+                    color: AppTheme.primaryNavy,
                     child: SafeArea(
-                      child: ListView(
-                        padding: const EdgeInsets.all(16),
+                      child: Column(
                         children: [
-                          Row(
-                            children: [
-                              const Text(
-                                'Quick Info',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 14,
+                          const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.admin_panel_settings,
+                                  color: AppTheme.academicGold,
+                                  size: 22,
                                 ),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Teacher Tools',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.white54,
+                                    size: 20,
+                                  ),
+                                  onPressed: () =>
+                                      setState(() => _rightOpen = false),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Divider(color: Colors.white24, height: 1),
+                          Expanded(
+                            child: ListView(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              children: [
+                                _teacherItem(
+                                  Icons.dashboard_outlined,
+                                  'Dashboard',
+                                  TeacherMenu.dashboard,
+                                ),
+                                _teacherItem(
+                                  Icons.note_alt_outlined,
+                                  'Notes',
+                                  TeacherMenu.notes,
+                                ),
+                                _teacherItem(
+                                  Icons.lightbulb_outline,
+                                  'Suggestion',
+                                  TeacherMenu.suggestion,
+                                ),
+                                _teacherItem(
+                                  Icons.chat_outlined,
+                                  'Message',
+                                  TeacherMenu.message,
+                                ),
+                                _teacherItem(
+                                  Icons.groups_outlined,
+                                  'Students',
+                                  TeacherMenu.students,
+                                ),
+                                _teacherItem(
+                                  Icons.fact_check_outlined,
+                                  'Attendance',
+                                  TeacherMenu.attendance,
+                                ),
+                                _teacherItem(
+                                  Icons.play_circle_outline,
+                                  'Courses',
+                                  TeacherMenu.courses,
+                                ),
+                                _teacherItem(
+                                  Icons.live_tv_outlined,
+                                  'Live Class',
+                                  TeacherMenu.liveClass,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Divider(color: Colors.white24, height: 1),
+                          ListTile(
+                            dense: true,
+                            leading: const Icon(
+                              Icons.logout,
+                              color: Colors.white70,
+                              size: 18,
+                            ),
+                            title: const Text(
+                              'Logout',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
                               ),
-                              const Spacer(),
-                              IconButton(
-                                icon: const Icon(Icons.close, size: 18),
-                                onPressed: () =>
-                                    setState(() => _rightBarOpen = false),
-                              ),
-                            ],
+                            ),
+                            onTap: _logout,
                           ),
                           const SizedBox(height: 8),
-                          _infoTile(Icons.person, 'Logged in as', name),
-                          _infoTile(
-                            Icons.email_outlined,
-                            'Email',
-                            AuthService().currentUserEmail.isNotEmpty
-                                ? AuthService().currentUserEmail
-                                : '—',
-                          ),
-                          const Divider(height: 28),
-                          const Text(
-                            'Shortcuts',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _shortcutChip(
-                            'Post Note',
-                            Icons.note_alt,
-                            () => setState(() => _selected = TeacherMenu.notes),
-                          ),
-                          _shortcutChip(
-                            'Add Suggestion',
-                            Icons.lightbulb,
-                            () => setState(
-                              () => _selected = TeacherMenu.suggestion,
-                            ),
-                          ),
-                          _shortcutChip(
-                            'Open Messages',
-                            Icons.chat,
-                            () =>
-                                setState(() => _selected = TeacherMenu.message),
-                          ),
-                          const Divider(height: 28),
-                          const Text(
-                            'Tips',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '• Notes are visible to all students.\n'
-                            '• Suggestions are for important study material.\n'
-                            '• Use Message for private student chat.\n'
-                            '• Live Class will be available soon.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                              height: 1.5,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -307,17 +479,57 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     );
   }
 
-  Widget _leftItem({
-    required IconData icon,
-    required String label,
-    required TeacherMenu menu,
+  Widget _sectionLabelLight(String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
+          color: AppTheme.textMuted,
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerItem(
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    bool highlight = false,
+    bool locked = false,
   }) {
+    return ListTile(
+      dense: true,
+      leading: Icon(
+        icon,
+        size: 20,
+        color: highlight ? AppTheme.academicGold : null,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
+          color: highlight ? AppTheme.academicGold : null,
+        ),
+      ),
+      trailing: locked
+          ? const Icon(Icons.lock, size: 14, color: AppTheme.textMuted)
+          : null,
+      onTap: onTap,
+    );
+  }
+
+  Widget _teacherItem(IconData icon, String label, TeacherMenu menu) {
     final selected = _selected == menu;
     return InkWell(
       onTap: () => setState(() => _selected = menu),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? AppTheme.royalBlue : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -326,8 +538,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           children: [
             Icon(
               icon,
-              color: selected ? Colors.white : Colors.white70,
               size: 18,
+              color: selected ? Colors.white : Colors.white70,
             ),
             const SizedBox(width: 10),
             Text(
@@ -335,71 +547,10 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               style: TextStyle(
                 color: selected ? Colors.white : Colors.white70,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                fontSize: 13,
+                fontSize: 12.5,
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoTile(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: AppTheme.royalBlue),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _shortcutChip(String label, IconData icon, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppTheme.royalBlue.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: AppTheme.royalBlue),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -415,312 +566,14 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         return 'Suggestions';
       case TeacherMenu.message:
         return 'Messages';
+      case TeacherMenu.students:
+        return 'Students';
+      case TeacherMenu.attendance:
+        return 'Attendance';
+      case TeacherMenu.courses:
+        return 'Courses';
       case TeacherMenu.liveClass:
         return 'Live Class';
     }
-  }
-}
-
-// ========== DASHBOARD SUMMARY (richer content) ==========
-class _DashboardSummary extends StatelessWidget {
-  const _DashboardSummary();
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Welcome banner
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primaryNavy, AppTheme.royalBlue],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome, ${AuthService().currentUserName.isNotEmpty ? AuthService().currentUserName : "Teacher"}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Manage notes, suggestions, and student messages from one place.',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // KPI cards
-          const Text(
-            'Overview',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 14),
-          LayoutBuilder(
-            builder: (ctx, constraints) {
-              final wide = constraints.maxWidth > 700;
-              return GridView.count(
-                crossAxisCount: wide ? 4 : 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: wide ? 1.45 : 1.25,
-                children: [
-                  _LiveKpi(
-                    label: 'Notes Posted',
-                    collection: 'notes',
-                    icon: Icons.note_alt,
-                    color: AppTheme.royalBlue,
-                  ),
-                  _LiveKpi(
-                    label: 'Suggestions',
-                    collection: 'suggestions',
-                    icon: Icons.lightbulb,
-                    color: AppTheme.academicGold,
-                  ),
-                  _LiveKpi(
-                    label: 'Chat Rooms',
-                    collection: 'chats',
-                    icon: Icons.chat,
-                    color: AppTheme.accentEmerald,
-                  ),
-                  _kpiStatic(
-                    'Live Class',
-                    'Soon',
-                    Icons.live_tv,
-                    AppTheme.accentRose,
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 28),
-
-          // Recent notes
-          const Text(
-            'Recent Notes',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('notes')
-                .orderBy('createdAt', descending: true)
-                .limit(5)
-                .snapshots(),
-            builder: (context, snap) {
-              final docs = snap.data?.docs ?? [];
-              if (docs.isEmpty) {
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      'No notes yet. Go to Notes to publish your first update.',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                );
-              }
-              return Column(
-                children: docs.map((doc) {
-                  final d = doc.data() as Map<String, dynamic>;
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: AppTheme.royalBlue,
-                        child: Icon(Icons.note, color: Colors.white, size: 18),
-                      ),
-                      title: Text(
-                        d['title']?.toString().isNotEmpty == true
-                            ? d['title']
-                            : 'Untitled note',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                      subtitle: Text(
-                        d['body'] ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      trailing: d['fileName'] != null
-                          ? const Icon(Icons.attach_file, size: 16)
-                          : null,
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-
-          // Recent suggestions
-          const Text(
-            'Recent Suggestions',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('suggestions')
-                .orderBy('createdAt', descending: true)
-                .limit(5)
-                .snapshots(),
-            builder: (context, snap) {
-              final docs = snap.data?.docs ?? [];
-              if (docs.isEmpty) {
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      'No suggestions yet. Share study tips from the Suggestion menu.',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                );
-              }
-              return Column(
-                children: docs.map((doc) {
-                  final d = doc.data() as Map<String, dynamic>;
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: AppTheme.academicGold,
-                        child: Icon(
-                          Icons.lightbulb,
-                          color: Colors.black,
-                          size: 18,
-                        ),
-                      ),
-                      title: Text(
-                        d['title']?.toString().isNotEmpty == true
-                            ? d['title']
-                            : 'Untitled',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                      subtitle: Text(
-                        d['body'] ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _kpiStatic(String label, String value, IconData icon, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LiveKpi extends StatelessWidget {
-  final String label;
-  final String collection;
-  final IconData icon;
-  final Color color;
-
-  const _LiveKpi({
-    required this.label,
-    required this.collection,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection(collection).snapshots(),
-      builder: (context, snap) {
-        final count = snap.hasData ? snap.data!.docs.length.toString() : '—';
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: color, size: 24),
-                const SizedBox(height: 8),
-                Text(
-                  count,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: color,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }

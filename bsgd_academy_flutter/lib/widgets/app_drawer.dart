@@ -184,7 +184,7 @@ class AppDrawer extends StatelessWidget {
                       _openSecured(
                         context,
                         UserRole.teacher,
-                        const TeacherAttendanceScreen(),
+                        const TeacherAttendancePage(),
                       );
                     },
                   ),

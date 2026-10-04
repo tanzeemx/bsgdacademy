@@ -1,57 +1,126 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../widgets/app_nav_bar.dart';
-import '../widgets/app_drawer.dart';
+
 import '../theme/app_theme.dart';
-import '../main.dart';
 
 class TeacherStudentsScreen extends StatelessWidget {
   const TeacherStudentsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final appState = AppStateScope.of(context);
-
-    return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppNavBar(onToggleTheme: appState.toggleTheme, isDark: appState.isDarkMode),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Student Roster Directory', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                const Text('View students filtered by Class, Group, and Shift.', style: TextStyle(color: AppTheme.textMuted)),
-                const SizedBox(height: 20),
-                Card(
-                  child: ListView(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: const [
-                      ListTile(
-                        leading: CircleAvatar(child: Text('1001')),
-                        title: Text('Tanzeem Ahmed', style: TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: Text('Class 12 • Science (Morning Shift) • Guardian: 01711-223344'),
-                        trailing: Text('94.2% Att.', style: TextStyle(color: AppTheme.accentEmerald, fontWeight: FontWeight.w700)),
-                      ),
-                      Divider(height: 1),
-                      ListTile(
-                        leading: CircleAvatar(child: Text('1002')),
-                        title: Text('Nusrat Jahan', style: TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: Text('Class 12 • Science (Morning Shift) • Guardian: 01822-334455'),
-                        trailing: Text('98.0% Att.', style: TextStyle(color: AppTheme.accentEmerald, fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+          child: Row(
+            children: [
+              const Text(
+                'Student Roster',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              const Spacer(),
+              Text(
+                'Firestore: students',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              ),
+            ],
           ),
         ),
-      ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('students')
+                .orderBy('roll')
+                .snapshots(),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final docs = snap.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No students yet.\nAdd documents in Firestore collection "students".',
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                scrollDirection: Axis.horizontal,
+                child: SingleChildScrollView(
+                  child: DataTable(
+                    headingRowColor: WidgetStateProperty.all(
+                      AppTheme.royalBlue.withOpacity(0.08),
+                    ),
+                    columns: const [
+                      DataColumn(
+                        label: Text(
+                          'Roll',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Name',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Class',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Group',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Shift',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Phone',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Status',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                    rows: docs.map((doc) {
+                      final d = doc.data() as Map<String, dynamic>;
+                      return DataRow(
+                        cells: [
+                          DataCell(Text('${d['roll'] ?? '—'}')),
+                          DataCell(Text('${d['name'] ?? '—'}')),
+                          DataCell(
+                            Text('${d['studentClass'] ?? d['class'] ?? '—'}'),
+                          ),
+                          DataCell(Text('${d['group'] ?? '—'}')),
+                          DataCell(Text('${d['shift'] ?? '—'}')),
+                          DataCell(Text('${d['phone'] ?? '—'}')),
+                          DataCell(Text('${d['status'] ?? 'Active'}')),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

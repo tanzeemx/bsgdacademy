@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
+
 import '../screens/home_screen.dart';
 import '../screens/courses_screen.dart';
 import '../screens/live_class_screen.dart';
@@ -83,7 +84,6 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(6),
@@ -93,10 +93,14 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               child: const Icon(Icons.school, color: Colors.white, size: 20),
             ),
-            const SizedBox(width: 10),
-            const Text(
-              'BSGD Online Academy',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text(
+                'BSGD Online Academy',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              ),
             ),
           ],
         ),

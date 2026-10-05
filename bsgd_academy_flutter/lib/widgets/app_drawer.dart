@@ -12,7 +12,7 @@ import '../screens/exams_screen.dart';
 import '../screens/results_screen.dart';
 import '../screens/notes_screen.dart';
 import '../screens/teacher_dashboard_screen.dart';
-import '../screens/teacher_attendance_screen.dart';
+import '../screens/teacher_attendance_page.dart'; // correct file
 import '../screens/teacher_students_screen.dart';
 import '../screens/teacher_exams_screen.dart';
 import '../screens/login_screen.dart';
@@ -21,7 +21,7 @@ class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
   void _openSecured(BuildContext context, UserRole role, Widget destination) {
-    Navigator.pop(context); // Close Drawer
+    Navigator.pop(context);
     final auth = AuthService();
     final bool authorized =
         (role == UserRole.student && auth.isStudentLoggedIn) ||
@@ -76,6 +76,8 @@ class AppDrawer extends StatelessWidget {
                       children: [
                         Text(
                           'BSGD Academy',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -84,6 +86,8 @@ class AppDrawer extends StatelessWidget {
                         ),
                         Text(
                           'Coaching Management Suite',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: Colors.white70, fontSize: 11),
                         ),
                       ],
@@ -128,7 +132,6 @@ class AppDrawer extends StatelessWidget {
                     const AdmissionScreen(),
                     highlight: true,
                   ),
-
                   const Divider(height: 24),
                   _buildSectionHeader('Student Portals (Password Protected)'),
                   _buildProtectedItem(
@@ -161,7 +164,6 @@ class AppDrawer extends StatelessWidget {
                     'PDF Lecture Notes',
                     const NotesScreen(),
                   ),
-
                   const Divider(height: 24),
                   _buildSectionHeader('Teacher & Admin (Password Protected)'),
                   _buildProtectedItem(
@@ -252,6 +254,8 @@ class AppDrawer extends StatelessWidget {
       ),
       title: Text(
         title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 13.5,
           fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
@@ -276,6 +280,8 @@ class AppDrawer extends StatelessWidget {
       leading: Icon(icon, color: AppTheme.royalBlue, size: 20),
       title: Text(
         title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
       ),
       trailing: const Icon(Icons.lock, size: 14, color: AppTheme.textMuted),

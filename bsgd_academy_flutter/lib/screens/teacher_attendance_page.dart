@@ -59,7 +59,7 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -100,6 +100,20 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
               if (snap.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
+
+              if (snap.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Could not load attendance.\n${snap.error}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+                  ),
+                );
+              }
+
               final docs = (snap.data?.docs ?? []).where((doc) {
                 final d = doc.data() as Map<String, dynamic>;
                 final ts = d['date'];
@@ -112,7 +126,7 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
                 return Center(
                   child: Text(
                     'No attendance for this period.\n'
-                    'Add documents in Firestore "attendance".',
+                    'Add documents in Firestore collection "attendance".',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
@@ -120,10 +134,8 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 itemCount: docs.length,
                 itemBuilder: (ctx, i) {
                   final d = docs[i].data() as Map<String, dynamic>;
@@ -137,8 +149,8 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
                   final statusColor = status == 'P'
                       ? AppTheme.accentEmerald
                       : status == 'A'
-                      ? AppTheme.accentRose
-                      : AppTheme.academicGold;
+                          ? AppTheme.accentRose
+                          : AppTheme.academicGold;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
@@ -156,6 +168,8 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
                       title: Text(
                         '${d['studentName'] ?? d['name'] ?? 'Student'}'
                         '${d['roll'] != null ? '  •  Roll ${d['roll']}' : ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
@@ -165,14 +179,16 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
                         '$dateStr'
                         '${d['class'] != null || d['studentClass'] != null ? '  •  Class ${d['class'] ?? d['studentClass']}' : ''}'
                         '${d['shift'] != null ? '  •  ${d['shift']}' : ''}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 12),
                       ),
                       trailing: Text(
                         status == 'P'
                             ? 'Present'
                             : status == 'A'
-                            ? 'Absent'
-                            : 'Late',
+                                ? 'Absent'
+                                : 'Late',
                         style: TextStyle(
                           color: statusColor,
                           fontWeight: FontWeight.w700,

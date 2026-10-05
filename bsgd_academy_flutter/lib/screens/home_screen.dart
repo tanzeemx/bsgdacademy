@@ -28,37 +28,16 @@ class HomeScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 1. Top Emergency Notice Ticker
             _buildAnnouncementBar(),
-
-            // 2. Hero Section
             _buildHeroSection(context),
-
-            // 3. Stats & Trust Metrics Strip
             _buildStatsStrip(context),
-
-            // 4. Live Broadcast Tonight Alert
             _buildUpcomingLiveAlert(context),
-
-            // 5. Core Academy Capabilities
             _buildCorePillars(context),
-
-            // 6. Featured Batches by Class & Shift
             _buildFeaturedBatches(context),
-
-            // 7. Lead Instructor Spotlight
             _buildInstructorSpotlight(context),
-
-            // 8. Student Success Stories & Testimonials
             _buildTestimonialsSection(context),
-
-            // 9. Quick FAQ Accordion Preview
             _buildFaqSection(context),
-
-            // 10. Start Learning Final CTA Banner
             _buildFinalCta(context),
-
-            // 11. Full Educational Footer
             _buildFooter(context),
           ],
         ),
@@ -66,26 +45,25 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 1. Top Announcement Bar
   Widget _buildAnnouncementBar() {
     return Container(
       color: AppTheme.royalBlue,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
       child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.campaign, color: AppTheme.academicGold, size: 18),
           SizedBox(width: 8),
-          Flexible(
+          Expanded(
             child: Text(
               'HSC 2026 Special Model Test Series Admissions Active! Morning and Day shift batches open.',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -93,10 +71,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 2. Hero Intro Section
   Widget _buildHeroSection(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final titleSize = w < 400 ? 24.0 : (w < 600 ? 28.0 : 34.0);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 56),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 48),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -114,35 +94,31 @@ class HomeScreen extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
+                  horizontal: 12,
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
                   color: AppTheme.royalBlue.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.verified, size: 14, color: AppTheme.royalBlue),
-                    SizedBox(width: 6),
-                    Text(
-                      'PREMIER ONLINE COACHING & LMS INFRASTRUCTURE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.royalBlue,
-                      ),
-                    ),
-                  ],
+                child: const Text(
+                  'PREMIER ONLINE COACHING & LMS INFRASTRUCTURE',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.royalBlue,
+                  ),
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Smart Digital Coaching for Board Exams & Admissions',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 34,
+                  fontSize: titleSize,
                   fontWeight: FontWeight.w800,
                   height: 1.2,
                 ),
@@ -240,7 +216,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 3. Stats Strip
   Widget _buildStatsStrip(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -286,33 +261,39 @@ class HomeScreen extends StatelessWidget {
                   : Column(
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildStatItem(
-                              '4,500+',
-                              'Enrolled Students',
-                              Icons.groups,
+                            Expanded(
+                              child: _buildStatItem(
+                                '4,500+',
+                                'Enrolled Students',
+                                Icons.groups,
+                              ),
                             ),
-                            _buildStatItem(
-                              '98.4%',
-                              'Exam Success Rate',
-                              Icons.verified_outlined,
+                            Expanded(
+                              child: _buildStatItem(
+                                '98.4%',
+                                'Exam Success Rate',
+                                Icons.verified_outlined,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 18),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildStatItem(
-                              '120+',
-                              'Live Classes Held',
-                              Icons.broadcast_on_personal,
+                            Expanded(
+                              child: _buildStatItem(
+                                '120+',
+                                'Live Classes Held',
+                                Icons.broadcast_on_personal,
+                              ),
                             ),
-                            _buildStatItem(
-                              '85+',
-                              'PDF Lecture Handouts',
-                              Icons.picture_as_pdf,
+                            Expanded(
+                              child: _buildStatItem(
+                                '85+',
+                                'PDF Lecture Handouts',
+                                Icons.picture_as_pdf,
+                              ),
                             ),
                           ],
                         ),
@@ -326,92 +307,96 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildStatItem(String val, String label, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: AppTheme.royalBlue, size: 26),
-        const SizedBox(height: 6),
-        Text(
-          val,
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 22,
-            color: AppTheme.royalBlue,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        children: [
+          Icon(icon, color: AppTheme.royalBlue, size: 26),
+          const SizedBox(height: 6),
+          Text(
+            val,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 20,
+              color: AppTheme.royalBlue,
+            ),
           ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-        ),
-      ],
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+          ),
+        ],
+      ),
     );
   }
 
-  // 4. Upcoming Live Alert
+  // FIXED: mobile stacks; no right overflow
   Widget _buildUpcomingLiveAlert(BuildContext context) {
     return Container(
       color: AppTheme.primaryNavy,
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1050),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentRose,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.circle, color: Colors.white, size: 8),
-                          SizedBox(width: 6),
-                          Text(
-                            'LIVE LECTURE TONIGHT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final narrow = c.maxWidth < 640;
+
+              final textBlock = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'HSC Higher Math: Differential Calculus Master Problem Clinic',
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentRose,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      '● LIVE LECTURE TONIGHT',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Today at 7:30 PM • Morning & Day Batches • Conducted by Sir Tanzeem',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'HSC Higher Math: Differential Calculus Master Problem Clinic',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton.icon(
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Today at 7:30 PM • Morning & Day Batches • Conducted by Sir Tanzeem',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              );
+
+              final button = ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.academicGold,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
+                    horizontal: 18,
+                    vertical: 12,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -426,15 +411,34 @@ class HomeScreen extends StatelessWidget {
                   'Enter Classroom',
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
-              ),
-            ],
+              );
+
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    textBlock,
+                    const SizedBox(height: 16),
+                    SizedBox(width: double.infinity, child: button),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: textBlock),
+                  const SizedBox(width: 12),
+                  button,
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  // 5. Core Pillars
   Widget _buildCorePillars(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
@@ -551,47 +555,67 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 6. Featured Batches
+  // FIXED: header no longer overflows on mobile
   Widget _buildFeaturedBatches(BuildContext context) {
     return Container(
       color: Theme.of(context).cardColor.withOpacity(0.5),
-      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 16),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Column(
+              LayoutBuilder(
+                builder: (ctx, c) {
+                  final narrow = c.maxWidth < 560;
+                  final titleBlock = const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Featured Coaching Batches',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                      SizedBox(height: 4),
                       Text(
                         'Sorted by Class, Group (Science/Commerce/Arts), and Shift.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: AppTheme.textMuted,
                           fontSize: 13,
                         ),
                       ),
                     ],
-                  ),
-                  TextButton.icon(
+                  );
+                  final viewAll = TextButton.icon(
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const CoursesScreen()),
                     ),
                     icon: const Icon(Icons.arrow_forward, size: 16),
                     label: const Text('View All Batches'),
-                  ),
-                ],
+                  );
+
+                  if (narrow) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [titleBlock, viewAll],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: titleBlock),
+                      viewAll,
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
               LayoutBuilder(
@@ -695,6 +719,8 @@ class HomeScreen extends StatelessWidget {
               ),
               child: Text(
                 meta,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: color,
                   fontWeight: FontWeight.w800,
@@ -705,6 +731,8 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
             const SizedBox(height: 4),
@@ -712,25 +740,32 @@ class HomeScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.schedule, size: 14, color: AppTheme.textMuted),
                 const SizedBox(width: 4),
-                Text(
-                  shift,
-                  style: const TextStyle(
-                    color: AppTheme.textMuted,
-                    fontSize: 12,
+                Expanded(
+                  child: Text(
+                    shift,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
             const Divider(height: 24),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  price,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: color,
-                    fontSize: 15,
+                Expanded(
+                  child: Text(
+                    price,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
                 ElevatedButton(
@@ -759,19 +794,20 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 7. Lead Instructor Spotlight
+  // FIXED: stacks on mobile
   Widget _buildInstructorSpotlight(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 16),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1000),
           child: Card(
             child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Row(
-                children: [
-                  const CircleAvatar(
+              padding: const EdgeInsets.all(24),
+              child: LayoutBuilder(
+                builder: (ctx, c) {
+                  final narrow = c.maxWidth < 520;
+                  final avatar = const CircleAvatar(
                     radius: 46,
                     backgroundColor: AppTheme.primaryNavy,
                     child: Icon(
@@ -779,49 +815,66 @@ class HomeScreen extends StatelessWidget {
                       size: 48,
                       color: AppTheme.academicGold,
                     ),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Lead Mentor & Academic Director',
-                          style: TextStyle(
-                            color: AppTheme.royalBlue,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                          ),
+                  );
+                  final info = const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Lead Mentor & Academic Director',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppTheme.royalBlue,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Prof. A. R. Rahman (Sir Tanzeem)',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Prof. A. R. Rahman (Sir Tanzeem)',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
                         ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'M.Sc. in Pure Mathematics & Theoretical Physics • 15+ Years Board Exam Experience',
-                          style: TextStyle(
-                            color: AppTheme.textMuted,
-                            fontSize: 13,
-                          ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'M.Sc. in Pure Mathematics & Theoretical Physics • 15+ Years Board Exam Experience',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 13,
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          '"My teaching philosophy is simple: master the core derivation once, and complex problems will resolve themselves naturally. No shortcut tricks, only crystal-clear logic."',
-                          style: TextStyle(
-                            fontStyle: FontStyle.italic,
-                            fontSize: 13,
-                            height: 1.5,
-                          ),
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        '"My teaching philosophy is simple: master the core derivation once, and complex problems will resolve themselves naturally. No shortcut tricks, only crystal-clear logic."',
+                        style: TextStyle(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 13,
+                          height: 1.5,
                         ),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                    ],
+                  );
+
+                  if (narrow) {
+                    return Column(
+                      children: [avatar, const SizedBox(height: 16), info],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      avatar,
+                      const SizedBox(width: 24),
+                      Expanded(child: info),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -830,7 +883,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 8. Testimonials Section
   Widget _buildTestimonialsSection(BuildContext context) {
     final reviews = [
       {
@@ -855,7 +907,7 @@ class HomeScreen extends StatelessWidget {
 
     return Container(
       color: Theme.of(context).cardColor.withOpacity(0.5),
-      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 16),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
@@ -868,6 +920,7 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 6),
               const Text(
                 'Verified feedback from students across our Morning, Day, and Evening batches.',
+                textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
               ),
               const SizedBox(height: 24),
@@ -936,6 +989,8 @@ class HomeScreen extends StatelessWidget {
             ),
             Text(
               '${r['exam']} (${r['score']})',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
             ),
           ],
@@ -944,10 +999,9 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 9. FAQ Section
   Widget _buildFaqSection(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 16),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 850),
@@ -960,6 +1014,7 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 6),
               const Text(
                 'Answers to common inquiries regarding classes, exams, and attendance.',
+                textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
               ),
               const SizedBox(height: 24),
@@ -1015,12 +1070,11 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 10. Final CTA Banner
   Widget _buildFinalCta(BuildContext context) {
     return Container(
       color: AppTheme.royalBlue,
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -1031,7 +1085,7 @@ class HomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1070,12 +1124,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 11. Multi-Column Educational Footer
+  // FIXED: copyright no longer overflows
   Widget _buildFooter(BuildContext context) {
     return Container(
       color: AppTheme.primaryNavy,
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+      padding: const EdgeInsets.fromLTRB(20, 48, 20, 24),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
@@ -1188,15 +1242,20 @@ class HomeScreen extends StatelessWidget {
                 },
               ),
               const Divider(color: Colors.white12, height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
                     '© 2026 BSGD Online Academy. All rights reserved.',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: Colors.white54, fontSize: 11),
                   ),
+                  SizedBox(height: 4),
                   Text(
                     'Coaching Management Platform',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: AppTheme.academicGold,
                       fontSize: 11,
@@ -1227,12 +1286,16 @@ class HomeScreen extends StatelessWidget {
               child: const Icon(Icons.school, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'BSGD Online Academy',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
+            const Expanded(
+              child: Text(
+                'BSGD Online Academy',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],

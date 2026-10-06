@@ -1,9 +1,11 @@
+import 'courses_screen.dart';
+import 'public_suggestion_screen.dart';
+
 import 'package:flutter/material.dart';
 
 import '../widgets/app_nav_bar.dart';
 import '../widgets/app_drawer.dart';
 import '../theme/app_theme.dart';
-import 'courses_screen.dart';
 import 'live_class_screen.dart';
 import 'admission_screen.dart';
 import 'exams_screen.dart';
@@ -199,11 +201,33 @@ class HomeScreen extends StatelessWidget {
                     ),
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ExamsScreen()),
+                      MaterialPageRoute(builder: (_) => const NoticeScreen()),
                     ),
-                    icon: const Icon(Icons.edit_note, size: 18),
+                    icon: const Icon(Icons.campaign_outlined, size: 18),
                     label: const Text(
-                      'Take Model Test',
+                      'Notices',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 15,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PublicSuggestionScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.lightbulb_outline, size: 18),
+                    label: const Text(
+                      'Suggestions',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -1382,3 +1406,5 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
+typedef NotesScreen = NoticeScreen;

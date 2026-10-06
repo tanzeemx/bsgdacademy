@@ -27,7 +27,7 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
 
   String? _attachmentName;
   String? _attachmentBase64;
-  String? _attachmentType; // 'image' | 'pdf'
+  String? _attachmentType;
   bool _loadingFile = false;
 
   static const int _maxBytes = 700 * 1024;
@@ -99,19 +99,21 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Insert')),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Insert'),
+          ),
         ],
       ),
     );
     if (ok != true) return;
-    final label =
-        labelCtrl.text.trim().isEmpty ? 'link' : labelCtrl.text.trim();
-    final url =
-        urlCtrl.text.trim().isEmpty ? 'https://' : urlCtrl.text.trim();
+    final label = labelCtrl.text.trim().isEmpty
+        ? 'link'
+        : labelCtrl.text.trim();
+    final url = urlCtrl.text.trim().isEmpty ? 'https://' : urlCtrl.text.trim();
     _applyWrap('[', ']($url)');
     final t = _bodyCtrl.text;
     final sel = _bodyCtrl.selection;
@@ -133,25 +135,16 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
       if (file == null) return;
 
       setState(() => _loadingFile = true);
-
       final name = file.name;
       final bytes = await file.readAsBytes() as Uint8List;
-      if (bytes.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not read file.')),
-          );
-        }
-        return;
-      }
+      if (bytes.isEmpty) return;
 
       if (bytes.length > _maxBytes) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'File too large (${(bytes.length / 1024).toStringAsFixed(0)} KB). '
-                'Max ~700 KB.',
+                'File too large (${(bytes.length / 1024).toStringAsFixed(0)} KB). Max ~700 KB.',
               ),
             ),
           );
@@ -160,20 +153,17 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
       }
 
       final ext = name.split('.').last.toLowerCase();
-      final isPdf = ext == 'pdf';
-      // Detect PDF by header even if extension wrong
-      final looksPdf = bytes.length >= 4 &&
+      final looksPdf =
+          bytes.length >= 4 &&
           bytes[0] == 0x25 &&
           bytes[1] == 0x50 &&
           bytes[2] == 0x44 &&
-          bytes[3] == 0x46; // %PDF
-
-      final type = (isPdf || looksPdf) ? 'pdf' : 'image';
-      final b64 = base64Encode(bytes);
+          bytes[3] == 0x46;
+      final type = (ext == 'pdf' || looksPdf) ? 'pdf' : 'image';
 
       setState(() {
         _attachmentName = name;
-        _attachmentBase64 = b64;
+        _attachmentBase64 = base64Encode(bytes);
         _attachmentType = type;
       });
 
@@ -188,9 +178,8 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _loadingFile = false);
@@ -250,18 +239,13 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Suggestion published.')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Suggestion saved.')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed: $e\nUse a file under ~700 KB.'),
-            duration: const Duration(seconds: 6),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _publishing = false);
@@ -287,7 +271,6 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
     if (b64 == null || b64.isEmpty) return null;
     try {
       final bytes = base64Decode(b64);
-      // Skip if PDF header
       if (bytes.length >= 4 &&
           bytes[0] == 0x25 &&
           bytes[1] == 0x50 &&
@@ -304,7 +287,6 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
   void _viewItem(Map<String, dynamic> d) {
     final isPdf = d['attachmentType'] == 'pdf';
     final img = _decodeImage(d);
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -322,26 +304,14 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                 const SizedBox(height: 16),
                 Image.memory(img, fit: BoxFit.contain),
               ],
-              if (isPdf &&
-                  d['attachmentBase64'] != null &&
-                  d['attachmentBase64'].toString().isNotEmpty) ...[
+              if (isPdf) ...[
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     const Icon(Icons.picture_as_pdf, color: Colors.red),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        d['attachmentName']?.toString() ?? 'PDF attached',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
+                    Text(d['attachmentName']?.toString() ?? 'PDF'),
                   ],
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'PDF is stored in the database. Preview as image is not supported.',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],
             ],
@@ -360,9 +330,8 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
   Future<void> _archiveItem(DocumentReference ref) async {
     await ref.update({'archived': true});
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Suggestion archived.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Archived.')));
     }
   }
 
@@ -373,8 +342,9 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
         title: const Text('Delete suggestion?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -405,10 +375,8 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                       height: 72,
                       width: 72,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.broken_image,
-                        size: 40,
-                      ),
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.broken_image, size: 40),
                     ),
                   );
                 } catch (_) {
@@ -454,8 +422,9 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                         children: [
                           Chip(
                             label: const Text('Editing'),
-                            backgroundColor:
-                                AppTheme.academicGold.withOpacity(0.25),
+                            backgroundColor: AppTheme.academicGold.withOpacity(
+                              0.25,
+                            ),
                           ),
                           TextButton(
                             onPressed: () {
@@ -473,8 +442,10 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                       style: const TextStyle(fontSize: 28, height: 1.3),
                       decoration: const InputDecoration(
                         hintText: 'Add title',
-                        hintStyle:
-                            TextStyle(fontSize: 28, color: Colors.black38),
+                        hintStyle: TextStyle(
+                          fontSize: 28,
+                          color: Colors.black38,
+                        ),
                         border: InputBorder.none,
                       ),
                     ),
@@ -482,7 +453,9 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 4),
+                        horizontal: 4,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         border: Border.all(color: Colors.grey.shade300),
@@ -562,11 +535,32 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                     const SizedBox(height: 28),
                     const Text(
                       'Published Suggestions',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     _publishedList(),
+
+                    // Student feedback from public page
+                    const SizedBox(height: 32),
+                    const Divider(),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Student feedback',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Messages sent from the public Suggestions page.',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 12),
+                    const _StudentFeedbackList(),
                   ],
                 ),
               ),
@@ -592,7 +586,7 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Files stored in Firestore as Base64 (max ~700 KB).',
+                          'Files as Base64 (max ~700 KB).',
                           style: TextStyle(fontSize: 11, color: Colors.black54),
                         ),
                         const SizedBox(height: 12),
@@ -604,6 +598,16 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                           child: Text(
                             _editingId != null ? 'Update' : 'Publish',
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton(
+                          onPressed: () {
+                            _titleCtrl.clear();
+                            _bodyCtrl.clear();
+                            _clearAttachment();
+                            setState(() => _editingId = null);
+                          },
+                          child: const Text('Clear'),
                         ),
                       ],
                     ),
@@ -642,7 +646,6 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
             final d = doc.data() as Map<String, dynamic>;
             final isPdf = d['attachmentType'] == 'pdf';
             final img = _decodeImage(d);
-
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               elevation: 0,
@@ -657,23 +660,23 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                     leading: isPdf
                         ? const Icon(Icons.picture_as_pdf, color: Colors.red)
                         : (img != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: Image.memory(
-                                  img,
-                                  width: 48,
-                                  height: 48,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.lightbulb_outline,
-                                    color: AppTheme.academicGold,
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Image.memory(
+                                    img,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.lightbulb_outline,
+                                      color: AppTheme.academicGold,
+                                    ),
                                   ),
-                                ),
-                              )
-                            : const Icon(
-                                Icons.lightbulb_outline,
-                                color: AppTheme.academicGold,
-                              )),
+                                )
+                              : const Icon(
+                                  Icons.lightbulb_outline,
+                                  color: AppTheme.academicGold,
+                                )),
                     title: Text(
                       d['title'] ?? 'Untitled',
                       maxLines: 1,
@@ -696,8 +699,11 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                         : null,
                   ),
                   Padding(
-                    padding:
-                        const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      right: 8,
+                      bottom: 8,
+                    ),
                     child: Wrap(
                       children: [
                         TextButton(
@@ -715,7 +721,8 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
                         TextButton(
                           onPressed: () => _deleteItem(doc.reference),
                           style: TextButton.styleFrom(
-                              foregroundColor: Colors.red),
+                            foregroundColor: Colors.red,
+                          ),
                           child: const Text('Delete'),
                         ),
                       ],
@@ -730,8 +737,12 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
     );
   }
 
-  Widget _tb(String label, VoidCallback onTap,
-      {bool bold = false, bool italic = false}) {
+  Widget _tb(
+    String label,
+    VoidCallback onTap, {
+    bool bold = false,
+    bool italic = false,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -758,9 +769,72 @@ class _TeacherSuggestionScreenState extends State<TeacherSuggestionScreen> {
   }
 
   Widget _sep() => Container(
-        width: 1,
-        height: 18,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        color: Colors.grey.shade300,
-      );
+    width: 1,
+    height: 18,
+    margin: const EdgeInsets.symmetric(horizontal: 4),
+    color: Colors.grey.shade300,
+  );
+}
+
+/// Student feedback from public Suggestions page
+class _StudentFeedbackList extends StatelessWidget {
+  const _StudentFeedbackList();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('suggestion_feedback')
+          .orderBy('createdAt', descending: true)
+          .limit(40)
+          .snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final docs = snap.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'No student feedback yet.',
+                style: TextStyle(color: Colors.black45),
+              ),
+            ),
+          );
+        }
+        return Column(
+          children: docs.map((doc) {
+            final d = doc.data() as Map<String, dynamic>;
+            final unread = d['read'] != true;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              color: unread ? AppTheme.royalBlue.withOpacity(0.06) : null,
+              child: ListTile(
+                leading: Icon(
+                  Icons.feedback_outlined,
+                  color: unread ? AppTheme.royalBlue : Colors.grey,
+                ),
+                title: Text(
+                  d['userName'] ?? 'Student',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(d['message'] ?? ''),
+                trailing: unread
+                    ? TextButton(
+                        child: const Text('Mark read'),
+                        onPressed: () => doc.reference.update({'read': true}),
+                      )
+                    : const Icon(Icons.check, color: Colors.green, size: 18),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
 }

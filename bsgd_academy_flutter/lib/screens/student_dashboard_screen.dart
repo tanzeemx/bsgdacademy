@@ -373,3 +373,5 @@ class BoxTheme {
     offset: const Offset(0, 4),
   );
 }
+
+typedef NotesScreen = NoticeScreen;

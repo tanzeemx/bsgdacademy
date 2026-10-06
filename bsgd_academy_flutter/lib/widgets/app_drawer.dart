@@ -1,3 +1,6 @@
+import '../screens/public_suggestion_screen.dart';
+import '../screens/notes_screen.dart';
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
@@ -132,6 +135,18 @@ class AppDrawer extends StatelessWidget {
                     const AdmissionScreen(),
                     highlight: true,
                   ),
+                  _buildItem(
+                    context,
+                    Icons.campaign_outlined,
+                    'Notices & Notes',
+                    const NoticeScreen(),
+                  ),
+                  _buildItem(
+                    context,
+                    Icons.lightbulb_outline,
+                    'Teacher Suggestions',
+                    const PublicSuggestionScreen(),
+                  ),
                   const Divider(height: 24),
                   _buildSectionHeader('Student Portals (Password Protected)'),
                   _buildProtectedItem(
@@ -160,9 +175,15 @@ class AppDrawer extends StatelessWidget {
                   ),
                   _buildItem(
                     context,
-                    Icons.picture_as_pdf_outlined,
-                    'PDF Lecture Notes',
-                    const NotesScreen(),
+                    Icons.campaign_outlined,
+                    'Notices & Notes',
+                    const NoticeScreen(),
+                  ),
+                  _buildItem(
+                    context,
+                    Icons.lightbulb_outline,
+                    'Teacher Suggestions',
+                    const PublicSuggestionScreen(),
                   ),
                   const Divider(height: 24),
                   _buildSectionHeader('Teacher & Admin (Password Protected)'),

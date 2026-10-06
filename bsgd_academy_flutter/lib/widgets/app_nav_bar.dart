@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
-
 import '../screens/home_screen.dart';
 import '../screens/courses_screen.dart';
 import '../screens/live_class_screen.dart';
 import '../screens/contact_screen.dart';
 import '../screens/admission_screen.dart';
+import '../screens/notes_screen.dart';
+import '../screens/public_suggestion_screen.dart';
 import '../screens/student_dashboard_screen.dart';
 import '../screens/teacher_dashboard_screen.dart';
 import '../screens/login_screen.dart';
@@ -23,23 +24,22 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(65);
+  Size get preferredSize => const Size.fromHeight(56);
+
+  void _go(BuildContext context, Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
 
   void _navigateToStudent(BuildContext context) {
     final auth = AuthService();
     if (auth.isStudentLoggedIn) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const StudentDashboardScreen()),
-      );
+      _go(context, const StudentDashboardScreen());
     } else {
-      Navigator.push(
+      _go(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LoginScreen(
-            initialRole: UserRole.student,
-            targetScreen: StudentDashboardScreen(),
-          ),
+        const LoginScreen(
+          initialRole: UserRole.student,
+          targetScreen: StudentDashboardScreen(),
         ),
       );
     }
@@ -48,18 +48,13 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
   void _navigateToTeacher(BuildContext context) {
     final auth = AuthService();
     if (auth.isTeacherLoggedIn) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const TeacherDashboardScreen()),
-      );
+      _go(context, const TeacherDashboardScreen());
     } else {
-      Navigator.push(
+      _go(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LoginScreen(
-            initialRole: UserRole.teacher,
-            targetScreen: TeacherDashboardScreen(),
-          ),
+        const LoginScreen(
+          initialRole: UserRole.teacher,
+          targetScreen: TeacherDashboardScreen(),
         ),
       );
     }
@@ -67,31 +62,36 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDesktop = MediaQuery.of(context).size.width >= 900;
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= 900;
     final auth = AuthService();
 
     return AppBar(
+      elevation: 0.5,
+      centerTitle: false,
       leading: Builder(
         builder: (ctx) => IconButton(
           icon: const Icon(Icons.menu),
-          tooltip: 'Open Navigation Drawer',
+          tooltip: 'Menu',
           onPressed: () => Scaffold.of(ctx).openDrawer(),
         ),
       ),
       title: InkWell(
-        onTap: () => Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        ),
+        onTap: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        },
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                 color: AppTheme.royalBlue,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(7),
               ),
-              child: const Icon(Icons.school, color: Colors.white, size: 20),
+              child: const Icon(Icons.school, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 8),
             const Flexible(
@@ -99,54 +99,90 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
                 'BSGD Online Academy',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
               ),
             ),
           ],
         ),
       ),
       actions: [
+        // Desktop full links
         if (isDesktop) ...[
-          _buildNavAction(context, 'Home', const HomeScreen()),
-          _buildNavAction(context, 'Courses', const CoursesScreen()),
-          _buildNavAction(context, 'Live Class', const LiveClassScreen()),
-          _buildNavAction(context, 'Contact', const ContactScreen()),
+          _link(context, 'Home', const HomeScreen()),
+          _link(context, 'Courses', const CoursesScreen()),
+          _link(context, 'Notices', const NoticeScreen()),
+          _link(context, 'Suggestions', const PublicSuggestionScreen()),
+          _link(context, 'Live Class', const LiveClassScreen()),
+          _link(context, 'Contact', const ContactScreen()),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.academicGold,
                 foregroundColor: Colors.black,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
               ),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdmissionScreen()),
-              ),
+              onPressed: () => _go(context, const AdmissionScreen()),
               child: const Text(
                 'Admission',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
               ),
             ),
           ),
         ],
 
-        // Theme Toggle
+        // Phone / tablet: overflow menu so links stay visible
+        if (!isDesktop)
+          PopupMenuButton<String>(
+            tooltip: 'Pages',
+            icon: const Icon(Icons.apps_outlined),
+            onSelected: (v) {
+              switch (v) {
+                case 'home':
+                  _go(context, const HomeScreen());
+                  break;
+                case 'courses':
+                  _go(context, const CoursesScreen());
+                  break;
+                case 'notices':
+                  _go(context, const NoticeScreen());
+                  break;
+                case 'suggestions':
+                  _go(context, const PublicSuggestionScreen());
+                  break;
+                case 'live':
+                  _go(context, const LiveClassScreen());
+                  break;
+                case 'contact':
+                  _go(context, const ContactScreen());
+                  break;
+                case 'admission':
+                  _go(context, const AdmissionScreen());
+                  break;
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'home', child: Text('Home')),
+              PopupMenuItem(value: 'courses', child: Text('Courses')),
+              PopupMenuItem(value: 'notices', child: Text('Notices')),
+              PopupMenuItem(value: 'suggestions', child: Text('Suggestions')),
+              PopupMenuItem(value: 'live', child: Text('Live Class')),
+              PopupMenuItem(value: 'contact', child: Text('Contact')),
+              PopupMenuItem(value: 'admission', child: Text('Admission')),
+            ],
+          ),
+
         IconButton(
-          tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+          tooltip: isDark ? 'Light mode' : 'Dark mode',
           icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode_outlined),
           onPressed: onToggleTheme,
         ),
 
-        // Secured User Menu (Requires Password)
         PopupMenuButton<String>(
-          tooltip: 'Access Portals',
+          tooltip: 'Account',
           icon: Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
               color: AppTheme.royalBlue.withOpacity(0.12),
               shape: BoxShape.circle,
@@ -156,7 +192,7 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
                   ? Icons.verified_user
                   : Icons.lock_outline,
               color: AppTheme.royalBlue,
-              size: 20,
+              size: 18,
             ),
           ),
           onSelected: (value) {
@@ -178,123 +214,51 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
               );
             }
           },
-          itemBuilder: (BuildContext context) => [
+          itemBuilder: (_) => [
             PopupMenuItem(
               value: 'student',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.school_outlined,
-                    color: AppTheme.royalBlue,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Student Portal',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                      Text(
-                        auth.isStudentLoggedIn
-                            ? 'Logged in: ${auth.currentUserName}'
-                            : 'Password Required',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: auth.isStudentLoggedIn
-                              ? AppTheme.accentEmerald
-                              : AppTheme.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              child: Text(
+                auth.isStudentLoggedIn
+                    ? 'Student Portal (in)'
+                    : 'Student Portal',
               ),
             ),
             if (auth.isStudentLoggedIn)
               const PopupMenuItem(
                 value: 'logout_student',
                 child: Text(
-                  '→ Logout Student',
-                  style: TextStyle(
-                    color: AppTheme.accentRose,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  'Logout Student',
+                  style: TextStyle(color: AppTheme.accentRose),
                 ),
               ),
             const PopupMenuDivider(),
             PopupMenuItem(
               value: 'teacher',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.admin_panel_settings_outlined,
-                    color: AppTheme.accentRose,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Teacher Hub',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                      Text(
-                        auth.isTeacherLoggedIn
-                            ? 'Authenticated: Faculty'
-                            : 'Password Required',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: auth.isTeacherLoggedIn
-                              ? AppTheme.accentEmerald
-                              : AppTheme.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              child: Text(
+                auth.isTeacherLoggedIn ? 'Teacher Hub (in)' : 'Teacher Hub',
               ),
             ),
             if (auth.isTeacherLoggedIn)
               const PopupMenuItem(
                 value: 'logout_teacher',
                 child: Text(
-                  '→ Logout Teacher',
-                  style: TextStyle(
-                    color: AppTheme.accentRose,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  'Logout Teacher',
+                  style: TextStyle(color: AppTheme.accentRose),
                 ),
               ),
           ],
         ),
-
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
       ],
     );
   }
 
-  Widget _buildNavAction(BuildContext context, String title, Widget screen) {
+  Widget _link(BuildContext context, String title, Widget screen) {
     return TextButton(
-      style: TextButton.styleFrom(
-        foregroundColor: null,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-      ),
-      onPressed: () =>
-          Navigator.push(context, MaterialPageRoute(builder: (_) => screen)),
+      onPressed: () => _go(context, screen),
       child: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
       ),
     );
   }

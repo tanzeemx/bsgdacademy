@@ -1,10 +1,14 @@
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import 'video_watch_screen.dart';
 
 class TeacherCoursesScreen extends StatefulWidget {
   const TeacherCoursesScreen({super.key});
@@ -42,11 +46,17 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
             children: [
               Row(
                 children: [
-                  const Text(
-                    'My Courses & Video Manager',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                  const Expanded(
+                    child: Text(
+                      'My Courses & Video Manager',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
-                  const Spacer(),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.royalBlue,
@@ -127,7 +137,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              '$desc\n$videoCount video(s) uploaded',
+                              '$desc\n$videoCount video(s)',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontSize: 12.5),
@@ -217,16 +227,14 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Course created successfully. Open it to add YouTube videos.',
-          ),
+          content: Text('Course created. Open it to add YouTube videos.'),
         ),
       );
     }
   }
 }
 
-// ========== PLAYLIST + IN-APP YOUTUBE PLAYER VIEW ==========
+// ========== PLAYLIST ==========
 class _CoursePlaylistView extends StatefulWidget {
   final String courseId;
   final String courseTitle;
@@ -243,23 +251,13 @@ class _CoursePlaylistView extends StatefulWidget {
 }
 
 class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
-  YoutubePlayerController? _ytController;
-  String? _currentVideoId;
-  String? _currentTitle;
-  String? _currentDesc;
-
   String? _extractYoutubeId(String url) {
     final uri = Uri.tryParse(url.trim());
     if (uri == null) return null;
-
-    if (uri.host.contains('youtu.be')) {
-      if (uri.pathSegments.isNotEmpty) return uri.pathSegments.first;
+    if (uri.host.contains('youtu.be') && uri.pathSegments.isNotEmpty) {
+      return uri.pathSegments.first;
     }
-
-    if (uri.queryParameters['v'] != null) {
-      return uri.queryParameters['v'];
-    }
-
+    if (uri.queryParameters['v'] != null) return uri.queryParameters['v'];
     if (uri.pathSegments.isNotEmpty) {
       final i = uri.pathSegments.indexWhere(
         (s) => s == 'embed' || s == 'shorts' || s == 'v',
@@ -271,34 +269,71 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
     return null;
   }
 
-  void _playVideo(String title, String url, String desc) {
+  /// D — open full video page (player + comments + docs)
+  void _openWatchPage(String videoDocId, String title, String url) {
     final id = _extractYoutubeId(url);
     if (id == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Not a valid YouTube URL. Use youtube.com or youtu.be link.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Not a valid YouTube URL.')));
       return;
     }
-
-    _ytController?.close();
-    _ytController = YoutubePlayerController.fromVideoId(
-      videoId: id,
-      autoPlay: true,
-      params: const YoutubePlayerParams(
-        showFullscreenButton: true,
-        mute: false,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VideoWatchScreen(
+          courseId: widget.courseId,
+          videoId: videoDocId,
+          title: title,
+          youtubeUrl: url,
+        ),
       ),
     );
+  }
 
-    setState(() {
-      _currentVideoId = id;
-      _currentTitle = title;
-      _currentDesc = desc;
-    });
+  /// E — attach image/PDF (Base64, max ~700 KB)
+  Future<void> _addDocument(String videoId) async {
+    try {
+      final file = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'pdf'],
+      );
+      if (file == null) return;
+
+      final bytes = await file.readAsBytes();
+      if (bytes.length > 700 * 1024) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('File max ~700 KB.')));
+        return;
+      }
+
+      final ext = file.name.split('.').last.toLowerCase();
+      final type = ext == 'pdf' ? 'pdf' : 'image';
+
+      await FirebaseFirestore.instance
+          .collection('courses')
+          .doc(widget.courseId)
+          .collection('videos')
+          .doc(videoId)
+          .collection('documents')
+          .add({
+            'name': file.name,
+            'type': type,
+            'base64': base64Encode(bytes),
+            'createdAt': FieldValue.serverTimestamp(),
+            'teacherId': FirebaseAuth.instance.currentUser?.uid,
+          });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Document added: ${file.name}')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
   }
 
   Future<void> _addVideoByUrl() async {
@@ -357,7 +392,6 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
                 controller: thumbCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Custom Thumbnail URL (Optional)',
-                  hintText: 'Leave blank to auto-fetch from YouTube',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -385,10 +419,12 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
 
     final title = titleCtrl.text.trim();
     final url = urlCtrl.text.trim();
+
+    
     if (title.isEmpty || url.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Title and YouTube URL are required.')),
+          const SnackBar(content: Text('Title and YouTube URL required.')),
         );
       }
       return;
@@ -404,7 +440,6 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
       return;
     }
 
-    // Auto-derive thumbnail from YouTube if custom thumbnail is empty
     final customThumb = thumbCtrl.text.trim();
     final finalThumbnail = customThumb.isNotEmpty
         ? customThumb
@@ -433,20 +468,10 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
         .update({'videoCount': FieldValue.increment(1)});
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Video successfully added with description & thumbnail!',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Video added to playlist.')));
     }
-  }
-
-  @override
-  void dispose() {
-    _ytController?.close();
-    super.dispose();
   }
 
   @override
@@ -459,7 +484,6 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Bar with Back Button
               Row(
                 children: [
                   IconButton(
@@ -470,6 +494,8 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
                   Expanded(
                     child: Text(
                       widget.courseTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -487,86 +513,18 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-
-              // In-App Player Card
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_currentTitle != null)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        color: AppTheme.primaryNavy,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _currentTitle!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                            if (_currentDesc != null &&
-                                _currentDesc!.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                _currentDesc!,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    if (_ytController != null && _currentVideoId != null)
-                      AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: YoutubePlayer(controller: _ytController!),
-                      )
-                    else
-                      Container(
-                        width: double.infinity,
-                        height: 220,
-                        color: Colors.grey.shade900,
-                        alignment: Alignment.center,
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.play_circle_outline,
-                              size: 48,
-                              color: Colors.white54,
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              'Select a video from the playlist below to play',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+              const SizedBox(height: 12),
+              const Text(
+                'Tap a video to open the watch page (player, comments, docs).\n'
+                'Use the paperclip to attach image/PDF to that video.',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
               ),
-              const SizedBox(height: 24),
-
+              const SizedBox(height: 20),
               const Text(
                 'Course Playlist',
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
               ),
               const SizedBox(height: 12),
-
-              // Playlist Stream with thumbnails & descriptions
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('courses')
@@ -585,7 +543,7 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
                         padding: const EdgeInsets.all(30),
                         child: Center(
                           child: Text(
-                            'No videos in this course playlist yet.\nClick "Add YouTube Video" above.',
+                            'No videos yet.\nClick "Add YouTube Video".',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.grey.shade600,
@@ -602,19 +560,15 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
                     itemCount: docs.length,
                     itemBuilder: (ctx, i) {
                       final d = docs[i].data() as Map<String, dynamic>;
+                      final videoDocId = docs[i].id;
                       final title = d['title'] ?? 'Video ${i + 1}';
                       final url = d['url'] ?? '';
                       final desc = d['description'] ?? '';
                       final duration = d['duration'] ?? '45m';
                       final thumb = d['thumbnail'] ?? '';
-                      final id = _extractYoutubeId(url);
-                      final isPlaying = id != null && id == _currentVideoId;
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
-                        color: isPlaying
-                            ? AppTheme.royalBlue.withOpacity(0.12)
-                            : null,
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(8),
                           leading: ClipRRect(
@@ -660,23 +614,36 @@ class _CoursePlaylistViewState extends State<_CoursePlaylistView> {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 11.5),
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.red,
-                              size: 20,
-                            ),
-                            onPressed: () async {
-                              await docs[i].reference.delete();
-                              await FirebaseFirestore.instance
-                                  .collection('courses')
-                                  .doc(widget.courseId)
-                                  .update({
-                                    'videoCount': FieldValue.increment(-1),
-                                  });
-                            },
+                          // E — attach + delete
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: 'Add PDF / image',
+                                icon: const Icon(Icons.attach_file, size: 20),
+                                onPressed: () => _addDocument(videoDocId),
+                              ),
+                              IconButton(
+                                tooltip: 'Delete video',
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                onPressed: () async {
+                                  await docs[i].reference.delete();
+                                  await FirebaseFirestore.instance
+                                      .collection('courses')
+                                      .doc(widget.courseId)
+                                      .update({
+                                        'videoCount': FieldValue.increment(-1),
+                                      });
+                                },
+                              ),
+                            ],
                           ),
-                          onTap: () => _playVideo(title, url, desc),
+                          // D — open watch page
+                          onTap: () => _openWatchPage(videoDocId, title, url),
                         ),
                       );
                     },

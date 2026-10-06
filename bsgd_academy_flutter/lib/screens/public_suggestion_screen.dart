@@ -15,6 +15,13 @@ import '../utils/file_download.dart';
 class PublicSuggestionScreen extends StatelessWidget {
   const PublicSuggestionScreen({super.key});
 
+  int _cols(double w) {
+    if (w < 600) return 1;
+    if (w < 900) return 2;
+    if (w < 1200) return 3;
+    return 4;
+  }
+
   Uint8List? _imageBytes(Map<String, dynamic> d) {
     return decodeImageBase64(
       d['attachmentBase64']?.toString(),
@@ -94,127 +101,149 @@ class PublicSuggestionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppNavBar(
         onToggleTheme: appState.toggleTheme,
         isDark: appState.isDarkMode,
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const Text(
-                'Teacher Suggestions',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Tips and suggestions from faculty. Open one to View or Download files.',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-              ),
-              const SizedBox(height: 20),
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('suggestions')
-                    .orderBy('createdAt', descending: true)
-                    .limit(50)
-                    .snapshots(),
-                builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.all(40),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  final docs = (snap.data?.docs ?? []).where((doc) {
-                    final d = doc.data() as Map<String, dynamic>;
-                    return d['archived'] != true;
-                  }).toList();
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final cols = _cols(constraints.maxWidth);
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  const Text(
+                    'Teacher Suggestions',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Tips and suggestions from faculty.',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('suggestions')
+                        .orderBy('createdAt', descending: true)
+                        .limit(50)
+                        .snapshots(),
+                    builder: (context, snap) {
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      final docs = (snap.data?.docs ?? []).where((doc) {
+                        final d = doc.data() as Map<String, dynamic>;
+                        return d['archived'] != true;
+                      }).toList();
 
-                  if (docs.isEmpty) {
-                    return const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text('No suggestions published yet.'),
-                      ),
-                    );
-                  }
+                      if (docs.isEmpty) {
+                        return const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text('No suggestions published yet.'),
+                          ),
+                        );
+                      }
 
-                  return Column(
-                    children: docs.map((doc) {
-                      final d = doc.data() as Map<String, dynamic>;
-                      final isPdf = d['attachmentType'] == 'pdf';
-                      final img = _imageBytes(d);
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: isPdf
-                              ? const CircleAvatar(
-                                  backgroundColor: Color(0xFFFFEBEE),
-                                  child: Icon(
-                                    Icons.picture_as_pdf,
-                                    color: Colors.red,
-                                  ),
-                                )
-                              : (img != null
-                                    ? ClipRRect(
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: docs.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: cols,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: cols == 1 ? 2.4 : 0.9,
+                        ),
+                        itemBuilder: (ctx, i) {
+                          final d = docs[i].data() as Map<String, dynamic>;
+                          final isPdf = d['attachmentType'] == 'pdf';
+                          final img = _imageBytes(d);
+
+                          return Card(
+                            clipBehavior: Clip.antiAlias,
+                            elevation: 1,
+                            child: InkWell(
+                              onTap: () => _openDetail(context, d),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (img != null)
+                                      ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
                                         child: Image.memory(
                                           img,
-                                          width: 48,
-                                          height: 48,
+                                          height: cols == 1 ? 80 : 100,
+                                          width: double.infinity,
                                           fit: BoxFit.cover,
                                         ),
                                       )
-                                    : const CircleAvatar(
-                                        backgroundColor: Color(0xFFFFF8E1),
-                                        child: Icon(
-                                          Icons.lightbulb_outline,
-                                          color: AppTheme.academicGold,
+                                    else
+                                      Icon(
+                                        isPdf
+                                            ? Icons.picture_as_pdf
+                                            : Icons.lightbulb_outline,
+                                        size: 32,
+                                        color: isPdf
+                                            ? Colors.red
+                                            : AppTheme.academicGold,
+                                      ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      d['title'] ?? 'Untitled',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Expanded(
+                                      child: Text(
+                                        d['body'] ?? '',
+                                        maxLines: cols == 1 ? 2 : 4,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12.5,
+                                          color: AppTheme.textMuted,
                                         ),
-                                      )),
-                          title: Text(
-                            d['title'] ?? 'Untitled',
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              d['body'] ?? '',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openDetail(context, d),
-                        ),
+                          );
+                        },
                       );
-                    }).toList(),
-                  );
-                },
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Send feedback to teachers',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+                  const _FeedbackBox(),
+                ],
               ),
-
-              const SizedBox(height: 32),
-              const Divider(),
-              const SizedBox(height: 12),
-              const Text(
-                'Send feedback to teachers',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Questions or comments about these suggestions — teachers see them on the Suggestion page in the dashboard.',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
-              ),
-              const SizedBox(height: 12),
-              const _FeedbackBox(),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -239,12 +268,7 @@ class _FeedbackBoxState extends State<_FeedbackBox> {
 
   Future<void> _send() async {
     final t = _ctrl.text.trim();
-    if (t.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Write something first.')));
-      return;
-    }
+    if (t.isEmpty) return;
     setState(() => _sending = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -259,12 +283,10 @@ class _FeedbackBoxState extends State<_FeedbackBox> {
         'read': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
-
       _ctrl.clear();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Feedback sent. Teachers will see it.')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Feedback sent.')));
       }
     } catch (e) {
       if (mounted) {
@@ -286,31 +308,21 @@ class _FeedbackBoxState extends State<_FeedbackBox> {
           children: [
             TextField(
               controller: _ctrl,
-              maxLines: 4,
+              maxLines: 3,
               decoration: const InputDecoration(
-                hintText: 'Your feedback or question…',
+                hintText: 'Your feedback…',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
-              child: FilledButton.icon(
+              child: FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.royalBlue,
                 ),
                 onPressed: _sending ? null : _send,
-                icon: _sending
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.send, size: 18),
-                label: Text(_sending ? 'Sending…' : 'Send feedback'),
+                child: Text(_sending ? 'Sending…' : 'Send feedback'),
               ),
             ),
           ],

@@ -1,4 +1,3 @@
-import '../utils/file_download.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -9,32 +8,32 @@ import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/app_nav_bar.dart';
 import '../main.dart';
+import '../utils/file_download.dart';
 
 class NoticeScreen extends StatelessWidget {
   const NoticeScreen({super.key});
 
+  int _cols(double w) {
+    if (w < 600) return 1;
+    if (w < 900) return 2;
+    if (w < 1200) return 3;
+    return 4;
+  }
+
   Uint8List? _imageBytes(Map<String, dynamic> d) {
-    if (d['attachmentType'] == 'pdf') return null;
-    final b64 = d['attachmentBase64']?.toString();
-    if (b64 == null || b64.isEmpty) return null;
-    try {
-      final bytes = base64Decode(b64);
-      if (bytes.length >= 4 &&
-          bytes[0] == 0x25 &&
-          bytes[1] == 0x50 &&
-          bytes[2] == 0x44 &&
-          bytes[3] == 0x46) {
-        return null;
-      }
-      return bytes;
-    } catch (_) {
-      return null;
-    }
+    return decodeImageBase64(
+      d['attachmentBase64']?.toString(),
+      d['attachmentType']?.toString(),
+    );
   }
 
   void _openDetail(BuildContext context, Map<String, dynamic> d) {
     final img = _imageBytes(d);
     final isPdf = d['attachmentType'] == 'pdf';
+    final b64 = d['attachmentBase64']?.toString();
+    final name =
+        d['attachmentName']?.toString() ?? (isPdf ? 'file.pdf' : 'image.jpg');
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -52,156 +51,197 @@ class NoticeScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Image.memory(img, fit: BoxFit.contain),
               ],
-              if (isPdf) ...[
+              if (isPdf && b64 != null && b64.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     const Icon(Icons.picture_as_pdf, color: Colors.red),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        d['attachmentName']?.toString() ?? 'PDF attached',
-                      ),
-                    ),
+                    Expanded(child: Text(name)),
                   ],
                 ),
               ],
             ],
           ),
         ),
-actions: [
-  if (d['attachmentBase64'] != null &&
-      d['attachmentBase64'].toString().isNotEmpty)
-    TextButton.icon(
-      icon: const Icon(Icons.download),
-      label: const Text('Download'),
-      onPressed: () {
-        downloadBase64File(
-          context: context,
-          base64Data: d['attachmentBase64'].toString(),
-          fileName: d['attachmentName']?.toString() ??
-              (d['attachmentType'] == 'pdf' ? 'file.pdf' : 'image.jpg'),
-          type: d['attachmentType']?.toString() ?? 'image',
-        );
-      },
-    ),
-  TextButton(
-    onPressed: () => Navigator.pop(ctx),
-    child: const Text('Close'),
-  ),
-],      ),
+        actions: [
+          if (b64 != null && b64.isNotEmpty) ...[
+            TextButton.icon(
+              icon: const Icon(Icons.visibility),
+              label: const Text('View'),
+              onPressed: () => viewBase64File(
+                context: context,
+                base64Data: b64,
+                type: d['attachmentType']?.toString() ?? 'image',
+                fileName: name,
+              ),
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.download),
+              label: const Text('Download'),
+              onPressed: () => downloadBase64File(
+                context: context,
+                base64Data: b64,
+                fileName: name,
+                type: d['attachmentType']?.toString() ?? 'image',
+              ),
+            ),
+          ],
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final appState = AppStateScope.of(context);
+
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppNavBar(
         onToggleTheme: appState.toggleTheme,
         isDark: appState.isDarkMode,
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const Text(
-                'Notices & Notes',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Important updates and notes from teachers.',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-              ),
-              const SizedBox(height: 20),
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('notes')
-                    .orderBy('createdAt', descending: true)
-                    .limit(50)
-                    .snapshots(),
-                builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.all(40),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  final docs = (snap.data?.docs ?? []).where((doc) {
-                    final d = doc.data() as Map<String, dynamic>;
-                    return d['archived'] != true;
-                  }).toList();
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final cols = _cols(constraints.maxWidth);
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  const Text(
+                    'Notices & Notes',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Important updates from teachers.',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('notes')
+                        .orderBy('createdAt', descending: true)
+                        .limit(50)
+                        .snapshots(),
+                    builder: (context, snap) {
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      final docs = (snap.data?.docs ?? []).where((doc) {
+                        final d = doc.data() as Map<String, dynamic>;
+                        return d['archived'] != true;
+                      }).toList();
 
-                  if (docs.isEmpty) {
-                    return const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text('No notices published yet.'),
-                      ),
-                    );
-                  }
+                      if (docs.isEmpty) {
+                        return const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text('No notices published yet.'),
+                          ),
+                        );
+                      }
 
-                  return Column(
-                    children: docs.map((doc) {
-                      final d = doc.data() as Map<String, dynamic>;
-                      final isPdf = d['attachmentType'] == 'pdf';
-                      final img = _imageBytes(d);
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: isPdf
-                              ? const CircleAvatar(
-                                  backgroundColor: Color(0xFFFFEBEE),
-                                  child: Icon(
-                                    Icons.picture_as_pdf,
-                                    color: Colors.red,
-                                  ),
-                                )
-                              : (img != null
-                                    ? ClipRRect(
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: docs.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: cols,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: cols == 1 ? 2.4 : 0.9,
+                        ),
+                        itemBuilder: (ctx, i) {
+                          final d = docs[i].data() as Map<String, dynamic>;
+                          final isPdf = d['attachmentType'] == 'pdf';
+                          final img = _imageBytes(d);
+
+                          return Card(
+                            clipBehavior: Clip.antiAlias,
+                            elevation: 1,
+                            child: InkWell(
+                              onTap: () => _openDetail(context, d),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (img != null)
+                                      ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
                                         child: Image.memory(
                                           img,
-                                          width: 48,
-                                          height: 48,
+                                          height: cols == 1 ? 80 : 100,
+                                          width: double.infinity,
                                           fit: BoxFit.cover,
                                         ),
                                       )
-                                    : const CircleAvatar(
-                                        backgroundColor: Color(0xFFE3F2FD),
-                                        child: Icon(
-                                          Icons.campaign,
-                                          color: AppTheme.royalBlue,
+                                    else
+                                      Icon(
+                                        isPdf
+                                            ? Icons.picture_as_pdf
+                                            : Icons.campaign_outlined,
+                                        size: 32,
+                                        color: isPdf
+                                            ? Colors.red
+                                            : AppTheme.royalBlue,
+                                      ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      d['title'] ?? 'Untitled',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Expanded(
+                                      child: Text(
+                                        d['body'] ?? '',
+                                        maxLines: cols == 1 ? 2 : 4,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12.5,
+                                          color: AppTheme.textMuted,
                                         ),
-                                      )),
-                          title: Text(
-                            d['title'] ?? 'Untitled',
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              d['body'] ?? '',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isPdf)
+                                      const Text(
+                                        'PDF',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openDetail(context, d),
-                        ),
+                          );
+                        },
                       );
-                    }).toList(),
-                  );
-                },
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

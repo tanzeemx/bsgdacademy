@@ -137,10 +137,13 @@ class _VideoWatchScreenState extends State<VideoWatchScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= 1000;
+
     final player = _controller == null
         ? Container(
-            height: 200,
+            height: 220,
             color: Colors.black12,
             alignment: Alignment.center,
             child: const Text('Invalid YouTube URL'),
@@ -150,95 +153,119 @@ class _VideoWatchScreenState extends State<VideoWatchScreen> {
             child: YoutubePlayer(controller: _controller!),
           );
 
+    final mainColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        player,
+        const SizedBox(height: 12),
+        Text(
+          widget.title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        StreamBuilder<QuerySnapshot>(
+          stream: _commentsRef.snapshots(),
+          builder: (context, snap) {
+            final n = snap.data?.docs.length ?? 0;
+            return Text(
+              '$n comment${n == 1 ? '' : 's'}',
+              style: const TextStyle(color: Colors.black54, fontSize: 13),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        const Text('Related materials',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        _RelatedDocs(courseId: widget.courseId, videoId: widget.videoId),
+        const SizedBox(height: 20),
+        const Text('Comments',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _commentCtrl,
+                decoration: const InputDecoration(
+                  hintText: 'Add a comment…',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.royalBlue),
+              onPressed: _sending ? null : () => _postComment(),
+              child: const Text('Post'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _CommentsList(commentsRef: _commentsRef, onReply: _postReply),
+        const SizedBox(height: 28),
+        const Text('More from this course',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        _SameCourseVideos(
+          courseId: widget.courseId,
+          currentVideoId: widget.videoId,
+        ),
+        const SizedBox(height: 28),
+        const Text('Other courses',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        _OtherCourses(currentCourseId: widget.courseId),
+        const SizedBox(height: 40),
+      ],
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(widget.title,
+            maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          player,
-          const SizedBox(height: 10),
-          Text(
-            widget.title,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          // comment count from stream
-          StreamBuilder<QuerySnapshot>(
-            stream: _commentsRef.snapshots(),
-            builder: (context, snap) {
-              final n = snap.data?.docs.length ?? 0;
-              return Text(
-                '$n comment${n == 1 ? '' : 's'}',
-                style: const TextStyle(color: Colors.black54, fontSize: 13),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Related materials
-          const Text(
-            'Related materials',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
-          _RelatedDocs(courseId: widget.courseId, videoId: widget.videoId),
-          const SizedBox(height: 20),
-
-          // Comments
-          const Text(
-            'Comments',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _commentCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a comment…',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+      body: wide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: mainColumn,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.royalBlue,
+                Expanded(
+                  flex: 1,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Playlist',
+                            style: TextStyle(fontWeight: FontWeight.w800)),
+                        _SameCourseVideos(
+                          courseId: widget.courseId,
+                          currentVideoId: widget.videoId,
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Other courses',
+                            style: TextStyle(fontWeight: FontWeight.w800)),
+                        _OtherCourses(currentCourseId: widget.courseId),
+                      ],
+                    ),
+                  ),
                 ),
-                onPressed: _sending ? null : () => _postComment(),
-                child: const Text('Post'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _CommentsList(commentsRef: _commentsRef, onReply: _postReply),
-
-          const SizedBox(height: 28),
-          const Text(
-            'More from this course',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          _SameCourseVideos(
-            courseId: widget.courseId,
-            currentVideoId: widget.videoId,
-          ),
-
-          const SizedBox(height: 28),
-          const Text(
-            'Other courses',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          _OtherCourses(currentCourseId: widget.courseId),
-        ],
-      ),
+              ],
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: mainColumn,
+            ),
     );
   }
-}
+  }
 
 class _CommentsList extends StatelessWidget {
   final CollectionReference commentsRef;

@@ -6,8 +6,6 @@ import '../models/user_profile.dart';
 
 enum UserRole { student, teacher, guest }
 
-/// Real Firebase Auth + Firestore role service.
-/// No public registration — users are created only in Firebase Console.
 class AuthService extends ChangeNotifier {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
@@ -31,18 +29,13 @@ class AuthService extends ChangeNotifier {
   String get currentUserName => _profile?.name ?? '';
   String get currentUserRoll => _profile?.roll ?? '';
   String get currentUserEmail => _profile?.email ?? '';
-
   User? get firebaseUser => _auth.currentUser;
 
-  /// Call once after Firebase.initializeApp()
   Future<void> init() async {
     final user = _auth.currentUser;
-    if (user != null) {
-      await _loadProfile(user.uid);
-    }
+    if (user != null) await _loadProfile(user.uid);
   }
 
-  /// Sign in with email + password, then load role from Firestore.
   Future<bool> signIn({
     required String email,
     required String password,
@@ -64,15 +57,16 @@ class AuthService extends ChangeNotifier {
         return false;
       }
 
-      final profile = await _loadProfile(uid);
+      final expected = expectedRole == UserRole.teacher ? 'teacher' : 'student';
+
+      final profile = await _loadProfile(uid, expectedRole: expected);
       if (profile == null) {
         await _auth.signOut();
         _error =
-            'Account exists but no profile found in database. Contact admin.';
+            'Account exists but no $expected profile in Firestore. Contact admin.';
         return false;
       }
 
-      final expected = expectedRole == UserRole.teacher ? 'teacher' : 'student';
       if (profile.role != expected) {
         await _auth.signOut();
         _profile = null;
@@ -95,17 +89,12 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<void> signOut() async {
-    await _auth.signOut();
-    _profile = null;
-    _error = null;
-    notifyListeners();
-  }
-
-  // Keep old names so existing code still compiles
   Future<bool> loginStudent(String identifier, String password) {
+    final email = identifier.contains('@')
+        ? identifier.trim()
+        : '${identifier.trim()}@bsgd.com';
     return signIn(
-      email: identifier.contains('@') ? identifier : '$identifier@bsgd.com',
+      email: email,
       password: password,
       expectedRole: UserRole.student,
     );
@@ -122,19 +111,48 @@ class AuthService extends ChangeNotifier {
     );
   }
 
+  Future<void> signOut() async {
+    await _auth.signOut();
+    _profile = null;
+    _error = null;
+    notifyListeners();
+  }
+
   void logoutStudent() => signOut();
   void logoutTeacher() => signOut();
 
-  Future<UserProfile?> _loadProfile(String uid) async {
+  /// teachers/{uid} or students/{uid} (doc id = Auth UID)
+  Future<UserProfile?> _loadProfile(String uid, {String? expectedRole}) async {
     try {
-      // Collection name is "teachers"
-      final doc = await _db.collection('teachers').doc(uid).get();
-      if (!doc.exists || doc.data() == null) {
-        _profile = null;
-        return null;
+      if (expectedRole == 'teacher' || expectedRole == null) {
+        final doc = await _db.collection('teachers').doc(uid).get();
+        if (doc.exists && doc.data() != null) {
+          final data = Map<String, dynamic>.from(doc.data()!);
+          data['role'] = data['role'] ?? 'teacher';
+          _profile = UserProfile.fromMap(uid, data);
+          return _profile;
+        }
       }
-      _profile = UserProfile.fromMap(uid, doc.data()!);
-      return _profile;
+
+      if (expectedRole == 'student' || expectedRole == null) {
+        final doc = await _db.collection('students').doc(uid).get();
+        if (doc.exists && doc.data() != null) {
+          final data = Map<String, dynamic>.from(doc.data()!);
+          data['role'] = data['role'] ?? 'student';
+          _profile = UserProfile.fromMap(uid, data);
+          return _profile;
+        }
+      }
+
+      // optional fallback
+      final userDoc = await _db.collection('users').doc(uid).get();
+      if (userDoc.exists && userDoc.data() != null) {
+        _profile = UserProfile.fromMap(uid, userDoc.data()!);
+        return _profile;
+      }
+
+      _profile = null;
+      return null;
     } catch (e) {
       debugPrint('Firestore profile load error: $e');
       _profile = null;
@@ -161,5 +179,3 @@ class AuthService extends ChangeNotifier {
     }
   }
 }
-
-

@@ -29,13 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _selectedRole = widget.initialRole;
-    if (_selectedRole == UserRole.student) {
-      _idCtrl.text = 'student@bsgd.com';
-      _passCtrl.text = '123456';
-    } else {
-      _idCtrl.text = 'teacher@bsgd.com';
-      _passCtrl.text = 'admin123';
-    }
   }
 
   @override
@@ -60,8 +53,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final auth = AuthService();
+    final email = id.contains('@') ? id : '$id@bsgd.com';
+
     final success = await auth.signIn(
-      email: id.contains('@') ? id : '$id@bsgd.com',
+      email: email,
       password: pass,
       expectedRole: _selectedRole,
     );
@@ -165,13 +160,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         setState(() {
                           _selectedRole = newSelection.first;
                           _errorMessage = '';
-                          if (_selectedRole == UserRole.student) {
-                            _idCtrl.text = 'student@bsgd.com';
-                            _passCtrl.text = '123456';
-                          } else {
-                            _idCtrl.text = 'teacher@bsgd.com';
-                            _passCtrl.text = 'admin123';
-                          }
                         });
                       },
                     ),
@@ -282,10 +270,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: AppTheme.royalBlue.withOpacity(0.06),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Column(
+                      child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'CREATE USER IN FIREBASE CONSOLE FIRST',
                             style: TextStyle(
                               fontSize: 10,
@@ -293,12 +281,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: AppTheme.royalBlue,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
-                            isStudent
-                                ? 'Student Email: student@bsgd.com  |  Password: 123456'
-                                : 'Teacher Email: teacher@bsgd.com  |  Password: admin123',
-                            style: const TextStyle(
+                            '1) Authentication → Add user (email + password)\n'
+                            '2) Copy UID\n'
+                            '3) Firestore teachers/{uid} or students/{uid} with role field',
+                            style: TextStyle(
                               fontSize: 11,
                               color: AppTheme.textMuted,
                               fontWeight: FontWeight.w600,

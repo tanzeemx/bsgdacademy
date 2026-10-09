@@ -9,6 +9,7 @@ import 'teacher_message_screen.dart';
 import 'teacher_students_screen.dart';
 import 'teacher_attendance_page.dart';
 import 'teacher_courses_screen.dart';
+import 'teacher_exams_screen.dart';
 import 'home_screen.dart';
 import 'courses_screen.dart';
 import 'live_class_screen.dart';
@@ -24,6 +25,7 @@ enum TeacherMenu {
   attendance,
   courses,
   liveClass,
+  exams,
 }
 
 class TeacherDashboardScreen extends StatefulWidget {
@@ -53,7 +55,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
 
   void _selectMenu(TeacherMenu menu) {
     setState(() => _selected = menu);
-    // Close drawers on mobile after selection
     if (_scaffoldKey.currentState?.isDrawerOpen == true) {
       Navigator.pop(context);
     }
@@ -78,6 +79,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         return const TeacherAttendancePage();
       case TeacherMenu.courses:
         return const TeacherCoursesScreen();
+      case TeacherMenu.exams:
+        return const TeacherExamsScreen();
       case TeacherMenu.liveClass:
         return const Center(
           child: Text(
@@ -106,6 +109,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         return 'Courses';
       case TeacherMenu.liveClass:
         return 'Live Class';
+      case TeacherMenu.exams:
+        return 'Exams';
     }
   }
 
@@ -117,7 +122,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         ? AuthService().currentUserName
         : 'Teacher';
 
-    // ===== WIDE: side panels =====
     if (isWide) {
       return Scaffold(
         body: Row(
@@ -126,7 +130,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             Expanded(
               child: Column(
                 children: [
-                  _topBar(name, showMenus: false),
+                  _topBar(name),
                   Expanded(child: _buildContent()),
                 ],
               ),
@@ -137,7 +141,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
       );
     }
 
-    // ===== NARROW (phone): drawers only — no permanent side panels =====
     return Scaffold(
       key: _scaffoldKey,
       drawer: Drawer(child: _leftPanel(showClose: true)),
@@ -199,7 +202,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     );
   }
 
-  Widget _topBar(String name, {required bool showMenus}) {
+  Widget _topBar(String name) {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -350,48 +353,19 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                     );
                   }, highlight: true),
                   const Divider(height: 20),
-                  _section('STUDENT PORTALS'),
-                  _navItem(
-                    Icons.lock_outline,
-                    'Student LMS Portal',
-                    () {},
-                    locked: true,
-                  ),
-                  _navItem(
-                    Icons.quiz_outlined,
-                    'Model Test Exam Center',
-                    () {},
-                  ),
-                  _navItem(
-                    Icons.emoji_events_outlined,
-                    'Results & Merit Board',
-                    () {},
-                  ),
-                  _navItem(
-                    Icons.picture_as_pdf_outlined,
-                    'PDF Lecture Notes',
-                    () {},
-                  ),
-                  const Divider(height: 20),
-                  _section('TEACHER & ADMIN'),
-                  _navItem(Icons.security, 'Teacher Command Hub', () {
+                  _section('TEACHER TOOLS'),
+                  _navItem(Icons.dashboard_outlined, 'Dashboard', () {
                     _selectMenu(TeacherMenu.dashboard);
                   }),
-                  _navItem(
-                    Icons.fact_check_outlined,
-                    'Daily Attendance Register',
-                    () {
-                      _selectMenu(TeacherMenu.attendance);
-                    },
-                  ),
-                  _navItem(Icons.groups_outlined, 'Student Roster', () {
+                  _navItem(Icons.fact_check_outlined, 'Attendance', () {
+                    _selectMenu(TeacherMenu.attendance);
+                  }),
+                  _navItem(Icons.groups_outlined, 'Students', () {
                     _selectMenu(TeacherMenu.students);
                   }),
-                  _navItem(
-                    Icons.grading_outlined,
-                    'Exam & Grade Evaluator',
-                    () {},
-                  ),
+                  _navItem(Icons.quiz_outlined, 'Exams', () {
+                    _selectMenu(TeacherMenu.exams);
+                  }),
                   const Divider(height: 20),
                   _navItem(
                     Icons.language,
@@ -489,6 +463,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                     'Courses',
                     TeacherMenu.courses,
                   ),
+                  _toolItem(Icons.quiz_outlined, 'Exams', TeacherMenu.exams),
                   _toolItem(
                     Icons.live_tv_outlined,
                     'Live Class',
@@ -501,13 +476,30 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             ListTile(
               dense: true,
               leading: const Icon(
-                Icons.logout,
+                Icons.public,
                 color: Colors.white70,
                 size: 18,
               ),
               title: const Text(
-                'Logout',
+                'View Site',
                 style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              onTap: _viewSite,
+            ),
+            ListTile(
+              dense: true,
+              leading: const Icon(
+                Icons.logout,
+                color: AppTheme.accentRose,
+                size: 18,
+              ),
+              title: const Text(
+                'Logout',
+                style: TextStyle(
+                  color: AppTheme.accentRose,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               onTap: _logout,
             ),

@@ -106,7 +106,6 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: [
-        // Desktop full links
         if (isDesktop) ...[
           _link(context, 'Home', const HomeScreen()),
           _link(context, 'Courses', const CoursesScreen()),
@@ -132,7 +131,6 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ],
 
-        // Phone / tablet: overflow menu so links stay visible
         if (!isDesktop)
           PopupMenuButton<String>(
             tooltip: 'Pages',
@@ -195,22 +193,34 @@ class AppNavBar extends StatelessWidget implements PreferredSizeWidget {
               size: 18,
             ),
           ),
-          onSelected: (value) {
+          onSelected: (value) async {
+            final authService = AuthService();
+
             if (value == 'student') {
               _navigateToStudent(context);
             } else if (value == 'teacher') {
               _navigateToTeacher(context);
             } else if (value == 'logout_student') {
-              auth.logoutStudent();
+              await authService.signOut();
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Logged out of Student Portal.')),
               );
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
+              );
             } else if (value == 'logout_teacher') {
-              auth.logoutTeacher();
+              await authService.signOut();
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Logged out of Teacher Dashboard.'),
                 ),
+              );
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
               );
             }
           },

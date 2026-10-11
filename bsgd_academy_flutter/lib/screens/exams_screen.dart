@@ -1,111 +1,118 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../widgets/app_nav_bar.dart';
-import '../widgets/app_drawer.dart';
+
 import '../theme/app_theme.dart';
-import 'mcq_exam_screen.dart';
-import 'written_exam_screen.dart';
-import '../main.dart';
+import 'student_take_exam_screen.dart';
 
 class ExamsScreen extends StatelessWidget {
-  const ExamsScreen({super.key});
+  final bool embedded;
+
+  const ExamsScreen({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context) {
-    final appState = AppStateScope.of(context);
+    final body = StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('exams')
+          .where('type', isEqualTo: 'mcq')
+          .where('published', isEqualTo: true)
+          .snapshots(),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(child: Text('Error: ${snap.error}'));
+        }
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final docs =
+            List<QueryDocumentSnapshot>.from(snap.data?.docs ?? []);
+        docs.sort((a, b) {
+          final ta = (a.data() as Map)['createdAt'];
+          final tb = (b.data() as Map)['createdAt'];
+          if (ta is Timestamp && tb is Timestamp) return tb.compareTo(ta);
+          return 0;
+        });
+
+        if (docs.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'No published MCQ exams yet.\nTeachers publish from Teacher → Exams.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          itemBuilder: (context, i) {
+            final doc = docs[i];
+            final d = doc.data() as Map<String, dynamic>;
+            final title = d['title']?.toString() ?? 'Exam';
+            final qCount = d['questionCount'] ?? 0;
+            final marks = d['fullMarks'] ?? '—';
+            final time = d['durationMinutes'] ?? 30;
+            final klass = d['studentClass']?.toString() ?? '';
+            final subject = d['subject']?.toString() ?? '';
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(16),
+                leading: CircleAvatar(
+                  backgroundColor: AppTheme.royalBlue.withOpacity(0.12),
+                  child: const Icon(Icons.quiz, color: AppTheme.royalBlue),
+                ),
+                title: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    [
+                      if (klass.isNotEmpty) 'Class $klass',
+                      if (subject.isNotEmpty) subject,
+                      '$qCount Q',
+                      '$marks marks',
+                      '$time min',
+                    ].join(' • '),
+                  ),
+                ),
+                trailing: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.royalBlue,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StudentTakeExamScreen(
+                          examId: doc.id,
+                          examTitle: title,
+                          durationMinutes: int.tryParse('$time') ?? 30,
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('Start'),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (embedded) return body;
 
     return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppNavBar(onToggleTheme: appState.toggleTheme, isDark: appState.isDarkMode),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Examination Center', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                const Text('Take auto-graded MCQ tests with negative marking or submit handwritten CQ written papers.', style: TextStyle(color: AppTheme.textMuted)),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: AppTheme.accentEmerald.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
-                              child: const Text('LIVE MCQ EXAM', style: TextStyle(color: AppTheme.accentEmerald, fontWeight: FontWeight.w800, fontSize: 11)),
-                            ),
-                            const Spacer(),
-                            const Text('Duration: 15 Mins', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        const Text('HSC Higher Math 1st Paper - Calculus Special Model Test', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                        const SizedBox(height: 6),
-                        const Text('4 Questions • Negative Marking: 0.25 • Instant score calculation & answer key.', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.academicGold,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const McqExamScreen())),
-                          icon: const Icon(Icons.edit, size: 16),
-                          label: const Text('Start MCQ Test Now', style: TextStyle(fontWeight: FontWeight.w800)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: AppTheme.royalBlue.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
-                              child: const Text('WRITTEN EXAM', style: TextStyle(color: AppTheme.royalBlue, fontWeight: FontWeight.w800, fontSize: 11)),
-                            ),
-                            const Spacer(),
-                            const Text('Duration: 45 Mins', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        const Text('Physics 1st Paper - Newtonian Mechanics Written Test', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                        const SizedBox(height: 6),
-                        const Text('Total Marks: 30 • Download Question Paper & upload answer sheet photo.', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.royalBlue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WrittenExamScreen())),
-                          icon: const Icon(Icons.upload_file, size: 16),
-                          label: const Text('Enter Written Test', style: TextStyle(fontWeight: FontWeight.w800)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Exams')),
+      body: body,
     );
   }
 }
